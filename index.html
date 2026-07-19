@@ -93,6 +93,7 @@
             padding: 15px;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            box-sizing: border-box;
         }
         
         /* LEADERBOARD / PAPAN SKOR */
@@ -105,6 +106,7 @@
             padding: 15px;
             margin-top: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-sizing: border-box;
         }
         .leaderboard-box h3 { margin: 0 0 10px 0; text-align: center; color: #0b5394; }
         .score-list { list-style: none; padding: 0; margin: 0; }
@@ -131,35 +133,39 @@
         }
         .back-btn:active { transform: translateY(2px); box-shadow: 0 2px #990000; }
 
-        /* INPUT POPUP SELESAI GAME */
-        #input-score-container {
-            display: none;
+        /* LAYOUT INPUT PAS GAME OVER (FIXED OVERLAP) */
+        .input-box-area {
+            display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 10px;
-            background: #444;
-            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            padding: 12px;
             border-radius: 8px;
-            width: 100%;
+            width: 90%;
             box-sizing: border-box;
+            border: 1px solid #555;
         }
-        #input-score-container input {
+        .input-box-area input {
             padding: 8px;
-            width: 80%;
+            width: 85%;
             border-radius: 4px;
-            border: none;
+            border: 1px solid #ccc;
             margin-bottom: 8px;
             text-align: center;
             font-weight: bold;
+            font-size: 14px;
         }
-        #input-score-container button {
-            padding: 6px 15px;
-            background: lime;
+        .input-box-area button {
+            padding: 8px 16px;
+            background: #ffc107;
             border: none;
             color: black;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
+            width: 85%;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -191,7 +197,7 @@
         <h2 id="active-game-title" style="color: #0b5394; margin-bottom: 10px;">GAME</h2>
         
         <div id="game-arena">
-            <div id="canvas-placeholder" style="width:360px; height:360px; color:#fff; display:flex; align-items:center; justify-content:center; text-align:center;">
+            <div id="canvas-placeholder" style="width:350px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 Memuat Permainan...
             </div>
         </div>
@@ -200,24 +206,30 @@
         <div class="leaderboard-box">
             <h3 id="leaderboard-title">🏆 TOP 10 SKOR GLOBAL</h3>
             <ul id="score-list" class="score-list">
-                <li class="score-item"><span>Memuat data papan skor...</span></li>
+                <li class="score-item"><span>Menghubungkan ke database online...</span></li>
             </ul>
         </div>
 
         <button class="back-btn" onclick="backToMenu()">◀ Kembali ke Menu Utama</button>
     </div>
 
-    <!-- Firebase SDK Modul Online (Sama Seperti di Aplikasi Tabungan) -->
+    <!-- Firebase SDK Modul Online -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // Konfigurasi Database Online Realtime Firebase Terpusat
+        // Menggunakan Database Terhubung Langsung dengan Project Tabungan Keluarga
         const firebaseConfig = {
-            databaseURL: "https://game-jadul-aan-default-rtdb.asia-southeast1.firebasedatabase.app/"
+            databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/"
         };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        
+        let database = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        } catch(e) {
+            console.log("Firebase Error:", e);
+        }
 
         let currentGame = "";
         let globalScore = 0;
@@ -242,7 +254,7 @@
             if (gameName === 'snake') {
                 loadSnakeGame();
             } else {
-                document.getElementById("canvas-placeholder").innerHTML = `<h3>Game ${gameName.toUpperCase()} sedang dalam pengembangan!</h3>`;
+                document.getElementById("canvas-placeholder").innerHTML = `<h3 style='color:#fff;'>Game ${gameName.toUpperCase()} sedang dikembangkan!</h3>`;
             }
         }
 
@@ -253,52 +265,41 @@
             document.getElementById("canvas-placeholder").innerHTML = "Memuat Permainan...";
         }
 
-        // --- AMBIL DATA PAPAN SKOR GLOBAL DARI FIREBASE ---
+        // --- AMBIL DATA PAPAN SKOR ---
         function loadLeaderboard(gameName) {
             const scoreListUl = document.getElementById("score-list");
-            database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).on('value', (snapshot) => {
-                scoreListUl.innerHTML = "";
-                let scores = [];
-                snapshot.forEach((childSnapshot) => {
-                    scores.push(childSnapshot.val());
-                });
-                scores.reverse();
-
-                if(scores.length === 0) {
-                    scoreListUl.innerHTML = "<li class='score-item'>Belum ada rekor. Jadilah yang pertama!</li>";
-                    return;
-                }
-
-                scores.forEach((item, index) => {
-                    const li = document.createElement("li");
-                    li.className = "score-item";
-                    li.innerHTML = `<span><b>${index + 1}.</b> ${item.name}</span> <span class="highlight">${item.score} (Lvl ${item.level})</span>`;
-                    scoreListUl.appendChild(li);
-                });
-            });
-        }
-
-        // --- TRIGER INPUT NAMA PAS GAME OVER ---
-        function triggerScoreSubmission(finalScore, finalLevel) {
-            globalScore = finalScore;
-            globalLevel = finalLevel;
             
-            // Cek peringkat ke database online global
-            database.ref('leaderboard/' + currentGame).orderByChild('score').limitToLast(10).once('value', (snapshot) => {
-                let scores = [];
-                snapshot.forEach((childSnapshot) => {
-                    scores.push(childSnapshot.val());
+            if(database) {
+                database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).on('value', (snapshot) => {
+                    scoreListUl.innerHTML = "";
+                    let scores = [];
+                    snapshot.forEach((childSnapshot) => { scores.push(childSnapshot.val()); });
+                    scores.reverse();
+                    renderScores(scores);
                 });
+            } else {
+                let localData = localStorage.getItem('leaderboard_' + gameName);
+                let scores = localData ? JSON.parse(localData) : [];
+                renderScores(scores);
+            }
+        }
 
-                const isTop10 = scores.length < 10 || finalScore > scores[0].score;
-
-                if (isTop10 && finalScore > 0) {
-                    document.getElementById("input-score-container").style.display = "flex";
-                }
+        function renderScores(scores) {
+            const scoreListUl = document.getElementById("score-list");
+            scoreListUl.innerHTML = "";
+            if(scores.length === 0) {
+                scoreListUl.innerHTML = "<li class='score-item'>Belum ada rekor. Ayo main!</li>";
+                return;
+            }
+            scores.forEach((item, index) => {
+                const li = document.createElement("li");
+                li.className = "score-item";
+                li.innerHTML = `<span><b>${index + 1}.</b> ${item.name}</span> <span class="highlight">${item.score} (Lvl ${item.level})</span>`;
+                scoreListUl.appendChild(li);
             });
         }
 
-        // --- SIMPAN DATA KE FIREBASE ---
+        // --- SIMPAN SKOR ---
         function submitScore() {
             const nameInput = document.getElementById("player-name-input");
             const name = nameInput.value.trim();
@@ -307,16 +308,28 @@
                 return;
             }
 
-            database.ref('leaderboard/' + currentGame).push({
+            const dataSkor = {
                 name: name,
                 score: parseInt(globalScore),
                 level: parseInt(globalLevel),
                 timestamp: Date.now()
-            });
+            };
 
-            document.getElementById("input-score-container").style.display = "none";
+            if(database) {
+                database.ref('leaderboard/' + currentGame).push(dataSkor);
+            } else {
+                let localData = localStorage.getItem('leaderboard_' + currentGame);
+                let scores = localData ? JSON.parse(localData) : [];
+                scores.push(dataSkor);
+                scores.sort((a,b) => b.score - a.score);
+                scores = scores.slice(0, 10);
+                localStorage.setItem('leaderboard_' + currentGame, JSON.stringify(scores));
+                loadLeaderboard(currentGame);
+            }
+
+            document.getElementById("input-score-area").style.display = "none";
             nameInput.value = "";
-            alert("Skor kamu berhasil dicatat di Papan Peringkat!");
+            alert("Skor kamu berhasil dikirim ke Papan Peringkat Online!");
         }
 
         let currentInterval;
@@ -324,34 +337,37 @@
             if (currentInterval) clearInterval(currentInterval);
         }
 
-        // --- LOGIKA GAME SNAKE ---
+        // --- GAME SNAKE CODES ---
         function loadSnakeGame() {
             const placeholder = document.getElementById("canvas-placeholder");
             placeholder.innerHTML = `
-                <div style="position:relative; width:330px; height:330px;">
+                <div style="position:relative; width:330px; height:330px; display:flex; justify-content:center; align-items:center;">
                     <canvas id="snakeCanvas" width="330" height="330" style="background:#111; border:2px solid #555; display:block;"></canvas>
-                    <div id="snake-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; padding:10px; box-sizing:border-box;">
-                        <h2 style="color:#ff4444; margin:0 0 5px 0; font-size:24px;">GAME OVER</h2>
-                        <p style="margin:2px 0;">Skor Akhir: <span id="snake-final-score" style="font-weight:bold; color:lime;">0</span></p>
+                    
+                    <div id="snake-overlay" style="position:absolute; top:0; left:0; width:330px; height:330px; background:rgba(0,0,0,0.9); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; box-sizing:border-box; border-radius:4px; padding:10px;">
+                        <h2 style="color:#ff4444; margin:5px 0; font-size:26px; font-weight:bold;">GAME OVER</h2>
+                        <p style="margin:5px 0; font-size:16px;">Skor Akhir: <span id="snake-final-score" style="font-weight:bold; color:lime;">0</span></p>
                         
-                        <!-- Form Input Papan Skor Internal -->
-                        <div id="input-score-container">
-                            <input type="text" id="player-name-input" placeholder="Masukkan Namamu" maxlength="12">
-                            <button onclick="submitScore()">Kirim ke Top 10</button>
+                        <!-- Area Input Nama Terkunci Rapi di Tengah Overlay -->
+                        <div id="input-score-area" class="input-box-area">
+                            <input type="text" id="player-name-input" placeholder="Nama Kamu" maxlength="12">
+                            <button onclick="submitScore()">KIRIM SKOR</button>
                         </div>
 
-                        <button onclick="startSnake()" style="margin-top:10px; padding:8px 16px; font-size:14px; font-weight:bold; background:lime; border:none; border-radius:5px; cursor:pointer;">MAIN LAGI</button>
+                        <button onclick="startSnake()" style="margin-top:5px; padding:8px 20px; font-size:14px; font-weight:bold; background:lime; border:none; border-radius:5px; cursor:pointer; color:black; width:80%;">MAIN LAGI ↻</button>
                     </div>
                 </div>
-                <div id="snake-stats" style="color:#fff; width:100%; display:flex; justify-content:space-between; margin-top:8px; font-size:15px;">
+                
+                <div id="snake-stats" style="color:#fff; width:330px; display:flex; justify-content:space-between; margin-top:10px; font-size:14px;">
                     <span>❤️ Nyawa: <b id="snk-lives">3</b></span>
                     <span>⭐ Level: <b id="snk-level">1</b></span>
                     <span>🎯 Skor: <b id="snk-score">0</b></span>
                 </div>
-                <div style="display:grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 45px); gap:6px; margin-top:12px; justify-content:center;">
-                    <div></div><button onclick="window.moveSnk('ArrowUp')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▲</button><div></div>
-                    <button onclick="window.moveSnk('ArrowLeft')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">◀</button><div></div><button onclick="window.moveSnk('ArrowRight')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▶</button>
-                    <div></div><button onclick="window.moveSnk('ArrowDown')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▼</button><div></div>
+                
+                <div style="display:grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 45px); gap:8px; margin-top:15px; justify-content:center; width:330px;">
+                    <div></div><button onclick="window.moveSnk('ArrowUp')" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:20px; font-weight:bold;">▲</button><div></div>
+                    <button onclick="window.moveSnk('ArrowLeft')" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:20px; font-weight:bold;">◀</button><div></div><button onclick="window.moveSnk('ArrowRight')" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:20px; font-weight:bold;">▶</button>
+                    <div></div><button onclick="window.moveSnk('ArrowDown')" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:20px; font-weight:bold;">▼</button><div></div>
                 </div>
             `;
             initSnakeLogic();
@@ -377,7 +393,6 @@
                 speed = 130;
                 
                 document.getElementById("snake-overlay").style.display = "none";
-                document.getElementById("input-score-container").style.display = "none";
                 updateStats();
                 generateFood();
                 
@@ -437,11 +452,13 @@
                     } else {
                         isGameOver = true;
                         clearIntervalsAll();
-                        document.getElementById("snake-final-score").innerText = score;
-                        document.getElementById("snake-overlay").style.display = "flex";
                         
-                        // Panggil pengecekan & penampilan input nama
-                        triggerScoreSubmission(score, level);
+                        globalScore = score;
+                        globalLevel = level;
+                        
+                        document.getElementById("snake-final-score").innerText = score;
+                        document.getElementById("input-score-area").style.display = "flex";
+                        document.getElementById("snake-overlay").style.display = "flex";
                         return;
                     }
                 }
@@ -450,7 +467,6 @@
 
                 if (head.x === food.x && head.y === food.y) {
                     score += 10;
-                    
                     let targetLevel = Math.floor(score / 200) + 1;
                     if (targetLevel > 10) targetLevel = 10;
                     
@@ -461,7 +477,6 @@
                         clearIntervalsAll();
                         currentInterval = setInterval(gameLoop, speed);
                     }
-                    
                     updateStats();
                     generateFood();
                 } else {
