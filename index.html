@@ -4,83 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Game Jadul Aankunaefi</title>
-    <!-- CSS asli Anda tetap terjaga -->
-    <style>
-        /* [SALIN SELURUH CSS ANDA DI SINI] */
-        body { display: flex; flex-direction: column; align-items: center; background-color: #f0f4f8; color: #333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px 10px; box-sizing: border-box; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-        .welcome-banner { width: 95%; max-width: 800px; background-color: #cfe2f3; border: 2px solid #6fa8dc; border-radius: 15px; padding: 15px 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .game-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 90%; max-width: 500px; margin-bottom: 30px; }
-        .game-btn { background-color: #3d85c6; color: white; border: 2px solid #0b5394; border-radius: 15px; padding: 18px 10px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 5px #0b5394; transition: all 0.1s ease; text-transform: uppercase; }
-        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
-        .screen.active { display: flex; }
-
-        /* Style Chat */
-        #chat-container { width: 90%; max-width: 500px; margin: 20px auto; border: 2px solid #0b5394; padding: 15px; background: white; border-radius: 15px; }
-        #chat-messages { height: 200px; overflow-y: scroll; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .chat-input-area { display: flex; flex-direction: column; gap: 5px; }
-    </style>
-</head>
-<body>
-
-    <!-- SCREEN UTAMA (Sama seperti data dasar Anda) -->
-    <div id="main-menu" class="screen active">
-        <div class="welcome-banner"><h1>WELCOME TO GAME JADUL</h1></div>
-        <div class="game-grid">
-            <button class="game-btn" onclick="openGame('snake')">Snake</button>
-            <button class="game-btn" onclick="openGame('pacman')">Pac Man</button>
-        </div>
-        
-        <!-- Chat Section di Menu Utama -->
-        <div id="chat-container">
-            <h3 style="margin-top:0; color:#0b5394;">Live Chat</h3>
-            <div id="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-name" placeholder="Nama Anda" style="padding:8px;">
-                <input type="text" id="chat-input" placeholder="Pesan..." style="padding:8px;">
-                <button onclick="sendMessage()" style="padding:10px; background:#0b5394; color:white; border:none; cursor:pointer;">Kirim</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SCREEN GAME (Sama seperti data dasar Anda) -->
-    <div id="game-screen" class="screen">
-        <!-- [SALIN HTML GAME ARENA ANDA DI SINI] -->
-    </div>
-
-    <!-- Script -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script>
-        const firebaseConfig = { databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/" };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // Fungsi Kirim Chat
-        function sendMessage() {
-            const name = document.getElementById("chat-name").value || "Anonim";
-            const msg = document.getElementById("chat-input").value;
-            if(!msg) return;
-            database.ref('chat_messages').push({ name, message: msg, timestamp: Date.now() });
-            document.getElementById("chat-input").value = "";
-        }
-
-        // Ambil Data Chat
-        database.ref('chat_messages').orderByChild('timestamp').limitToLast(20).on('value', (snapshot) => {
-            const chatDiv = document.getElementById("chat-messages");
-            chatDiv.innerHTML = "";
-            snapshot.forEach((child) => {
-                const data = child.val();
-                chatDiv.innerHTML += `<div><b>${data.name}:</b> ${data.message}</div>`;
-            });
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-        });
-
-        // <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Jadul Aankunaefi</title>
     <style>
         body {
             display: flex;
@@ -1375,10 +1298,6 @@
 
             window.startPacman();
         }
-    </script>
-</body>
-</html>
-
     </script>
 </body>
 </html>
