@@ -15,8 +15,9 @@
             margin: 0;
             padding: 15px 10px;
             box-sizing: border-box;
-            touch-action: none;
+            touch-action: pan-y; /* Diubah agar halaman HP bisa di-scroll ke atas/bawah */
             user-select: none;
+            -webkit-user-select: none;
         }
 
         .welcome-banner {
@@ -132,6 +133,7 @@
             font-size: 15px;
             cursor: pointer;
             box-shadow: 0 4px #990000;
+            margin-bottom: 30px; /* Jarak bawah agar tombol tidak mepet layar */
         }
 
         .input-box-area {
@@ -167,7 +169,7 @@
 
         @media (max-width: 600px) {
             .game-container-layout {
-                flex-direction: column-reverse;
+                flex-direction: column; /* Mengubah alur: Game di atas, papan skor di bawahnya */
                 align-items: center;
             }
             .leaderboard-box {
@@ -205,19 +207,19 @@
         
         <div class="game-container-layout">
             
-            <!-- PAPAN SKOR KIRI -->
+            <!-- ARENA PERMAINAN (DI ATAS SAAT DI HP) -->
+            <div id="game-arena">
+                <div id="canvas-placeholder" style="width:330px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                    Memuat Permainan...
+                </div>
+            </div>
+
+            <!-- PAPAN SKOR KIRI (DI BAWAH GAME SAAT DI HP, BISA DI-SCROLL) -->
             <div class="leaderboard-box">
                 <h3 id="leaderboard-title">🏆 TOP 10 SKOR</h3>
                 <ul id="score-list" class="score-list">
                     <li class="score-item"><span>Menghubungkan...</span></li>
                 </ul>
-            </div>
-
-            <!-- ARENA PERMAINAN KANAN -->
-            <div id="game-arena">
-                <div id="canvas-placeholder" style="width:330px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                    Memuat Permainan...
-                </div>
             </div>
 
         </div>
@@ -230,7 +232,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // KODE DATABASE SUDAH DIBERSIHKAN TOTAL
         const firebaseConfig = {
             databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/"
         };
@@ -412,6 +413,9 @@
                 let diffY = e.touches[0].clientY - startY;
                 
                 if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
+                    // Mencegah layar browser ikut bergulir HANYA saat melakukan gesture swipe bermain di atas kotak game
+                    e.preventDefault(); 
+                    
                     if (Math.abs(diffX) > Math.abs(diffY)) {
                         if (diffX > 0) window.moveSnk('ArrowRight');
                         else window.moveSnk('ArrowLeft');
@@ -421,7 +425,7 @@
                     }
                     startX = 0; startY = 0;
                 }
-            }, { passive: true });
+            }, { passive: false }); // Diubah ke false agar e.preventDefault() di atas bekerja mengunci tarikan layar browser
 
             function gameLoop() {
                 if (isGameOver) return;
