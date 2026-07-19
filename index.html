@@ -421,6 +421,8 @@
 
             if (gameName === 'snake') {
                 loadSnakeGame();
+            } else if (gameName === 'pacman') {
+                loadPacmanGame();
             } else {
                 document.getElementById("canvas-placeholder").innerHTML = `<h3 style='color:#fff;'>Game ${gameName.toUpperCase()} sedang dikembangkan!</h3>`;
             }
@@ -479,6 +481,9 @@
         let currentInterval;
         function clearIntervalsAll() { if (currentInterval) clearInterval(currentInterval); }
 
+        // =========================================================================
+        // ============================ LOGIKA GAME SNAKE ==========================
+        // =========================================================================
         function loadSnakeGame() {
             const placeholder = document.getElementById("canvas-placeholder");
             placeholder.innerHTML = `
@@ -505,7 +510,6 @@
                 </div>
 
                 <div id="powerup-status" style="color: #ffc107;"></div>
-
                 <div id="food-timer-bar" style="width: 330px; height: 6px; background: #ffcc00; margin-top: 5px; display: none; transition: width 0.1s linear; border-radius:3px;"></div>
 
                 <div style="color:#aaa; font-size:11px; margin-top:6px; font-style:italic; text-align:center;">
@@ -846,12 +850,7 @@
                     if (targetLevel > 10) targetLevel = 10;
                     if (targetLevel > level) {
                         level = targetLevel; 
-                        
-                        // Fitur Maksimal Nyawa hanya sampai 5 saja
-                        if (lives < 5) {
-                            lives += 1; 
-                        }
-                        
+                        if (lives < 5) { lives += 1; }
                         speed = speed * 0.90; 
                         generateObstacles(level); 
                         clearIntervalsAll(); 
@@ -868,11 +867,6 @@
                     ctx.shadowBlur = 10;
                     ctx.beginPath();
                     ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/2, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.fillStyle = "#fff";
-                    ctx.beginPath();
-                    ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/4, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.shadowBlur = 0;
                 });
@@ -935,6 +929,302 @@
                 });
             }
             window.startSnake();
+        }
+
+        // =========================================================================
+        // =========================== LOGIKA GAME PAC MAN =========================
+        // =========================================================================
+        function loadPacmanGame() {
+            const placeholder = document.getElementById("canvas-placeholder");
+            placeholder.innerHTML = `
+                <div id="touch-zone" style="position:relative; width:330px; height:330px; display:flex; justify-content:center; align-items:center;">
+                    <canvas id="pacmanCanvas" width="330" height="330" style="background:#000; border:2px solid #3d85c6; display:block;"></canvas>
+                    
+                    <div id="pacman-overlay" style="position:absolute; top:0; left:0; width:330px; height:330px; background:rgba(0,0,0,0.9); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; padding:10px; box-sizing:border-box;">
+                        <h2 style="color:#ff4444; margin:5px 0; font-size:26px;">GAME OVER</h2>
+                        <p style="margin:5px 0; font-size:16px;">Skor: <span id="pacman-final-score" style="color:#ffcc00; font-weight:bold;">0</span></p>
+                        
+                        <div id="input-score-area" class="input-box-area">
+                            <input type="text" id="player-name-input" placeholder="Nama Kamu" maxlength="12">
+                            <button onclick="submitScore()">KIRIM SKOR</button>
+                        </div>
+                        <button onclick="startPacman()" style="margin-top:5px; padding:10px; font-weight:bold; background:#ffcc00; border:none; border-radius:5px; width:85%; cursor:pointer; color:black;">MAIN LAGI ↻</button>
+                    </div>
+                </div>
+                
+                <div style="color:#fff; width:330px; display:flex; justify-content:space-between; margin-top:8px; font-size:13px; align-items:center;">
+                    <span>❤️ Nyawa: <b id="pc-lives">3</b></span>
+                    <span>⭐ Lvl: <b id="pc-level">1</b></span>
+                    <span>🎯 Skor: <b id="pc-score">0</b></span>
+                    <button id="btn-bgm-toggle" onclick="toggleBgmToggle()" style="background:#27ae60; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-weight:bold; cursor:pointer; font-size:11px;">🎵 BGM: ON</button>
+                </div>
+
+                <div style="color:#aaa; font-size:11px; margin-top:12px; font-style:italic; text-align:center;">
+                    Makan seluruh titik kuning cerah dan hindari Hantu!
+                </div>
+                
+                <div style="display:grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(3, 48px); gap:10px; margin-top:10px; justify-content:center; width:330px;">
+                    <div></div><button id="btn-up" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▲</button><div></div>
+                    <button id="btn-left" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">◀</button><div></div><button id="btn-right" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▶</button>
+                    <div></div><button id="btn-down" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▼</button><div></div>
+                </div>
+            `;
+            initPacmanLogic();
+        }
+
+        function initPacmanLogic() {
+            const canvas = document.getElementById("pacmanCanvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+
+            const tileSize = 22; // 15 baris x 15 kolom = 330px
+            let score, level, lives, isGameOver;
+            let pacman = { x: 1, y: 1, dx: 0, dy: 0, nextDx: 0, nextDy: 0, angle: 0 };
+            let ghosts = [];
+            let dots = [];
+
+            // 1 = Dinding, 0 = Jalan (Ada Makanan)
+            const mapLayout = [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+                [1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
+                [1,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,0,1,1,1,1,1,0,1,0,1,0,1],
+                [1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+                [1,1,1,0,1,0,1,0,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
+                [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
+                [1,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
+                [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ];
+
+            function initMapData() {
+                dots = [];
+                for (let r = 0; r < mapLayout.length; r++) {
+                    for (let c = 0; c < mapLayout[r].length; c++) {
+                        if (mapLayout[r][c] === 0) {
+                            // Jangan taruh koin di posisi spawn Pacman / Hantu
+                            if ((r === 1 && c === 1) || (r === 7 && c === 7) || (r === 7 && c === 8)) continue;
+                            dots.push({ x: c, y: r });
+                        }
+                    }
+                }
+            }
+
+            function resetPositions() {
+                pacman.x = 1; pacman.y = 1;
+                pacman.dx = 0; pacman.dy = 0;
+                pacman.nextDx = 0; pacman.nextDy = 0;
+
+                ghosts = [
+                    { x: 7, y: 7, color: '#ff0000', dx: 1, dy: 0 }, // Blinky
+                    { x: 8, y: 7, color: '#ffb8ff', dx: -1, dy: 0 } // Pinky
+                ];
+            }
+
+            window.startPacman = function() {
+                initAudio();
+                score = 0; level = 1; lives = 3; isGameOver = false;
+                document.getElementById("pacman-overlay").style.display = "none";
+                
+                initMapData();
+                resetPositions();
+                updateStats();
+
+                clearIntervalsAll();
+                currentInterval = setInterval(gameLoop, 220); // Kecepatan Pacman
+
+                stopBgm();
+                startBgm();
+            };
+
+            function updateStats() {
+                document.getElementById("pc-lives").innerText = lives;
+                document.getElementById("pc-level").innerText = level;
+                document.getElementById("pc-score").innerText = score;
+            }
+
+            window.movePacman = function(dir) {
+                initAudio();
+                if (isGameOver) return;
+                if (dir === 'ArrowUp')    { pacman.nextDx = 0;  pacman.nextDy = -1; }
+                if (dir === 'ArrowDown')  { pacman.nextDx = 0;  pacman.nextDy = 1;  }
+                if (dir === 'ArrowLeft')  { pacman.nextDx = -1; pacman.nextDy = 0;  }
+                if (dir === 'ArrowRight') { pacman.nextDx = 1;  pacman.nextDy = 0;  }
+            };
+
+            document.onkeydown = function(e) { window.movePacman(e.key); };
+
+            document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowUp'); });
+            document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowDown'); });
+            document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowLeft'); });
+            document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowRight'); });
+
+            function isTileWall(x, y) {
+                if (x < 0 || x >= 15 || y < 0 || y >= 15) return true;
+                return mapLayout[y][x] === 1;
+            }
+
+            function gameLoop() {
+                if (isGameOver) return;
+
+                // Cek input arah berikutnya (apakah membentur tembok?)
+                if (!isTileWall(pacman.x + pacman.nextDx, pacman.y + pacman.nextDy)) {
+                    pacman.dx = pacman.nextDx;
+                    pacman.dy = pacman.nextDy;
+                }
+
+                // Jalankan Pacman
+                if (!isTileWall(pacman.x + pacman.dx, pacman.y + pacman.dy)) {
+                    pacman.x += pacman.dx;
+                    pacman.y += pacman.dy;
+                }
+
+                // Logika Makan Dots
+                for (let i = dots.length - 1; i >= 0; i--) {
+                    if (dots[i].x === pacman.x && dots[i].y === pacman.y) {
+                        dots.splice(i, 1);
+                        score += 10;
+                        playEatSound();
+                        updateStats();
+                    }
+                }
+
+                // Naik Level bila Dots Habis
+                if (dots.length === 0) {
+                    level++;
+                    if (lives < 5) { lives++; } // Kap maksimal nyawa di 5
+                    initMapData();
+                    resetPositions();
+                    updateStats();
+                }
+
+                // Logika Hantu (AI Sederhana)
+                ghosts.forEach(ghost => {
+                    // Cari semua arah alternatif yang tidak menabrak tembok
+                    let validMoves = [];
+                    const directions = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+                    
+                    directions.forEach(d => {
+                        if (!isTileWall(ghost.x + d.x, ghost.y + d.y)) {
+                            // Jangan langsung putar balik 180 derajat ke belakang kecuali terpaksa
+                            if (!(d.x === -ghost.dx && d.y === -ghost.dy)) {
+                                validMoves.push(d);
+                            }
+                        }
+                    });
+
+                    if (validMoves.length === 0) {
+                        directions.forEach(d => {
+                            if (!isTileWall(ghost.x + d.x, ghost.y + d.y)) validMoves.push(d);
+                        });
+                    }
+
+                    // Kejar koordinat Pacman (AI dasar)
+                    let chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
+                    let minDist = 999;
+
+                    validMoves.forEach(m => {
+                        let nextX = ghost.x + m.x;
+                        let nextY = ghost.y + m.y;
+                        let dist = Math.abs(nextX - pacman.x) + Math.abs(nextY - pacman.y);
+                        // Peluang 60% mengejar langsung, sisanya acak biar menantang
+                        if (dist < minDist && Math.random() < 0.65) {
+                            minDist = dist;
+                            chosen = m;
+                        }
+                    });
+
+                    if (chosen) {
+                        ghost.dx = chosen.x;
+                        ghost.dy = chosen.y;
+                        ghost.x += ghost.dx;
+                        ghost.y += ghost.dy;
+                    }
+
+                    // Deteksi Tabrakan Pacman dengan Hantu
+                    if (ghost.x === pacman.x && ghost.y === pacman.y) {
+                        playHitSound();
+                        lives--;
+                        updateStats();
+
+                        if (lives > 0) {
+                            resetPositions();
+                        } else {
+                            isGameOver = true;
+                            clearIntervalsAll();
+                            stopBgm();
+                            globalScore = score; globalLevel = level;
+                            document.getElementById("pacman-final-score").innerText = score;
+                            document.getElementById("pacman-overlay").style.display = "flex";
+                        }
+                    }
+                });
+
+                // --- PROSES MENGGAMBAR ELEMEN GAME ---
+                ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 1. Gambar Labirin
+                for (let r = 0; r < mapLayout.length; r++) {
+                    for (let c = 0; c < mapLayout[r].length; c++) {
+                        if (mapLayout[r][c] === 1) {
+                            ctx.fillStyle = "#1b3a4b";
+                            ctx.fillRect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2);
+                            ctx.strokeStyle = "#005f73";
+                            ctx.strokeRect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2);
+                        }
+                    }
+                }
+
+                // 2. Gambar Makanan (Dots)
+                ctx.fillStyle = "#ffcc00";
+                dots.forEach(d => {
+                    ctx.beginPath();
+                    ctx.arc(d.x * tileSize + tileSize / 2, d.y * tileSize + tileSize / 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // 3. Gambar Pac Man
+                ctx.fillStyle = "#ffff00";
+                ctx.beginPath();
+                // Efek animasi mulut berkedip sedikit berdasarkan waktu tick
+                let mouthAngle = (Math.floor(Date.now() / 200) % 2 === 0) ? 0.2 : 0.0;
+                ctx.arc(
+                    pacman.x * tileSize + tileSize / 2, 
+                    pacman.y * tileSize + tileSize / 2, 
+                    tileSize / 2 - 2, 
+                    mouthAngle * Math.PI, 
+                    (2 - mouthAngle) * Math.PI
+                );
+                ctx.lineTo(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2);
+                ctx.fill();
+
+                // 4. Gambar Para Hantu
+                ghosts.forEach(ghost => {
+                    ctx.fillStyle = ghost.color;
+                    ctx.beginPath();
+                    let gx = ghost.x * tileSize + tileSize / 2;
+                    let gy = ghost.y * tileSize + tileSize / 2;
+                    ctx.arc(gx, gy - 2, tileSize / 2 - 2, Math.PI, 0, false);
+                    ctx.lineTo(gx + tileSize / 2 - 2, gy + tileSize / 2);
+                    ctx.lineTo(gx - tileSize / 2 + 2, gy + tileSize / 2);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Mata Hantu
+                    ctx.fillStyle = "#fff";
+                    ctx.beginPath();
+                    ctx.arc(gx - 3, gy - 3, 2.5, 0, Math.PI * 2);
+                    ctx.arc(gx + 3, gy - 3, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            window.startPacman();
         }
     </script>
 </body>
