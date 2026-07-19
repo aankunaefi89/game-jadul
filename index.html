@@ -15,7 +15,7 @@
             margin: 0;
             padding: 15px 10px;
             box-sizing: border-box;
-            touch-action: none; /* Mengunci default-scroll HP agar swipe game fokus */
+            touch-action: none;
             user-select: none;
         }
 
@@ -77,7 +77,6 @@
         .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
         .screen.active { display: flex; }
 
-        /* ================= SEAT LAYOUT DUA KOLOM (KIRI & KANAN) ================= */
         .game-container-layout {
             display: flex;
             flex-direction: row;
@@ -90,7 +89,6 @@
             box-sizing: border-box;
         }
 
-        /* KOLOM KIRI: PAPAN SKOR MEMANJANG */
         .leaderboard-box {
             width: 260px;
             background: #fff;
@@ -99,7 +97,7 @@
             padding: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             box-sizing: border-box;
-            min-height: 400px; /* Membuat kotak memanjang ke bawah */
+            min-height: 400px;
         }
         .leaderboard-box h3 { margin: 0 0 15px 0; text-align: center; color: #0b5394; font-size: 16px; border-bottom: 2px solid #cfe2f3; padding-bottom: 5px;}
         .score-list { list-style: none; padding: 0; margin: 0; }
@@ -112,7 +110,6 @@
         }
         .score-item:last-child { border-bottom: none; }
 
-        /* KOLOM KANAN: ARENA GAME */
         #game-arena {
             display: flex;
             flex-direction: column;
@@ -168,10 +165,9 @@
             width: 85%;
         }
 
-        /* RESPONSIVITAS JIKA DI LAYAR HP KECIL (KEMBALI KE TUMPUK ATAS BAWAH AGAR KELIATAN) */
         @media (max-width: 600px) {
             .game-container-layout {
-                flex-direction: column-reverse; /* Game di atas, Papan skor di bawahnya */
+                flex-direction: column-reverse;
                 align-items: center;
             }
             .leaderboard-box {
@@ -207,10 +203,9 @@
     <div id="game-screen" class="screen">
         <h2 id="active-game-title" style="color: #0b5394; margin-bottom: 5px;">GAME</h2>
         
-        <!-- Pembungkus Layout Kiri & Kanan -->
         <div class="game-container-layout">
             
-            <!-- SEBELAH KIRI: PAPAN SKOR 1-10 GLOBAL MEMANJANG -->
+            <!-- PAPAN SKOR KIRI -->
             <div class="leaderboard-box">
                 <h3 id="leaderboard-title">🏆 TOP 10 SKOR</h3>
                 <ul id="score-list" class="score-list">
@@ -218,7 +213,7 @@
                 </ul>
             </div>
 
-            <!-- SEBELAH KANAN: AREA UTAMA PLAY PERMAINAN -->
+            <!-- ARENA PERMAINAN KANAN -->
             <div id="game-arena">
                 <div id="canvas-placeholder" style="width:330px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                     Memuat Permainan...
@@ -235,9 +230,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // Menggunakan Database Terhubung Langsung dengan Project Tabungan Keluarga
+        // KODE DATABASE SUDAH DIBERSIHKAN TOTAL
         const firebaseConfig = {
-            databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/"[cite: 1]
+            databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/"
         };
         
         let database = null;
@@ -283,7 +278,6 @@
                     snapshot.forEach((childSnapshot) => { scores.push(childSnapshot.val()); });
                     scores.reverse();
                     
-                    // Isi sampai 10 peringkat kosong jika belum penuh agar memanjang konsisten
                     while(scores.length < 10) {
                         scores.push({name: "-", score: "-", level: "-"});
                     }
@@ -320,7 +314,6 @@
         let currentInterval;
         function clearIntervalsAll() { if (currentInterval) clearInterval(currentInterval); }
 
-        // --- GAME SNAKE PROGRAM ---
         function loadSnakeGame() {
             const placeholder = document.getElementById("canvas-placeholder");
             placeholder.innerHTML = `
@@ -345,10 +338,8 @@
                     <span>🎯 Skor: <b id="snk-score">0</b></span>
                 </div>
 
-                <!-- Petunjuk Swipe Info HP -->
                 <div style="color:#aaa; font-size:11px; margin-top:4px; font-style:italic;">💡 Tips HP: Geser/Swipe jari langsung di atas kotak hitam game!</div>
                 
-                <!-- Tombol Kontrol Alternatif Lebih Besar & Sensitif -->
                 <div style="display:grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(3, 48px); gap:10px; margin-top:10px; justify-content:center; width:330px;">
                     <div></div><button id="btn-up" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▲</button><div></div>
                     <button id="btn-left" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">◀</button><div></div><button id="btn-right" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▶</button>
@@ -399,16 +390,13 @@
                 if (targetKey === "ArrowDown" && dy === 0) { dx = 0; dy = gridSize; }
             };
 
-            // SISTEM KONTROL PC
             document.onkeydown = function(e) { window.moveSnk(e.key); };
 
-            // SISTEM KONTROL TOMBOL HP (MENGGUNAKAN TOUTCHSTART AGAR INSTAN & SENSITIF TANPA DELAY KETUK)
             document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); window.moveSnk('ArrowUp'); });
             document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); window.moveSnk('ArrowDown'); });
             document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); window.moveSnk('ArrowLeft'); });
             document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); window.moveSnk('ArrowRight'); });
 
-            // ================= INTEGRASI SENSOR SWIPE GESTURE PADA HP =================
             let touchZone = document.getElementById("touch-zone");
             let startX = 0, startY = 0;
 
@@ -423,18 +411,14 @@
                 let diffX = e.touches[0].clientX - startX;
                 let diffY = e.touches[0].clientY - startY;
                 
-                // Nilai ambang batas minimal gesekan jari agar sensitif (15 pixel saja)
                 if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
                     if (Math.abs(diffX) > Math.abs(diffY)) {
-                        // Gerakan Horizontal (Kiri/Kanan)
                         if (diffX > 0) window.moveSnk('ArrowRight');
                         else window.moveSnk('ArrowLeft');
                     } else {
-                        // Gerakan Vertikal (Atas/Bawah)
                         if (diffY > 0) window.moveSnk('ArrowDown');
                         else window.moveSnk('ArrowUp');
                     }
-                    // Reset deteksi titik setelah bergerak agar responsif untuk gerakan berikutnya
                     startX = 0; startY = 0;
                 }
             }, { passive: true });
