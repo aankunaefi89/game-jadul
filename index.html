@@ -171,7 +171,7 @@
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
             box-sizing: border-box;
-            transition: transform 0.05s linear; /* Untuk efek screen shake */
+            transition: transform 0.05s linear;
         }
 
         .back-btn {
@@ -219,7 +219,6 @@
             width: 85%;
         }
 
-        /* Gaya teks indikator Power-Up aktif */
         #powerup-status {
             font-weight: bold;
             text-align: center;
@@ -321,7 +320,6 @@
         let globalScore = 0;
         let globalLevel = 1;
 
-        // --- WEB AUDIO API AUDIO MANAGER ---
         let audioCtx = null;
         let bgmInterval = null;
         let isBgmPlaying = false;
@@ -369,7 +367,7 @@
         function startBgm() {
             if (!bgmEnabled || isBgmPlaying || !audioCtx) return;
             isBgmPlaying = true;
-            let notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5 Arpeggio Retro
+            let notes = [261.63, 329.63, 392.00, 523.25]; 
             let step = 0;
             
             bgmInterval = setInterval(() => {
@@ -506,10 +504,8 @@
                     <button id="btn-bgm-toggle" onclick="toggleBgmToggle()" style="background:#27ae60; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-weight:bold; cursor:pointer; font-size:11px;">🎵 BGM: ON</button>
                 </div>
 
-                <!-- Status Berjalan Power Up -->
                 <div id="powerup-status" style="color: #ffc107;"></div>
 
-                <!-- Indikator Batas Durasi Makanan Emas & Mystery Box -->
                 <div id="food-timer-bar" style="width: 330px; height: 6px; background: #ffcc00; margin-top: 5px; display: none; transition: width 0.1s linear; border-radius:3px;"></div>
 
                 <div style="color:#aaa; font-size:11px; margin-top:6px; font-style:italic; text-align:center;">
@@ -537,16 +533,15 @@
             let obstacles = [];
             const defaultSpeed = 130;
 
-            // --- DEKLARASI VARIABEL FITUR BARU ---
-            let portals = [];          // Menyimpan koordinat dua portal
-            let particles = [];        // Efek Ledakan Partikel
-            let isGhostMode = false;   // Menembus tembok & tubuh sendiri
-            let isDoubleScore = false; // Pengali skor ganda
-            let powerUpTimer = null;   // Waktu aktif efek 5 detik
+            let portals = [];          
+            let particles = [];        
+            let isGhostMode = false;   
+            let isDoubleScore = false; 
+            let powerUpTimer = null;   
 
             function generateObstacles(lvl) {
                 obstacles = [];
-                portals = []; // Reset portal setiap ganti level
+                portals = []; 
                 let mid = 11 * gridSize;
 
                 if (lvl === 3 || lvl === 4) {
@@ -567,9 +562,7 @@
                     }
                 }
 
-                // AKTIVASI PORTAL PADA LEVEL DITENTUKAN (Level 4 dan Level 7)
                 if (lvl === 4 || lvl === 7) {
-                    // Taruh portal di posisi aman yang kosong
                     portals = [
                         { x: 2 * gridSize, y: 2 * gridSize, id: 'A' },
                         { x: 19 * gridSize, y: 19 * gridSize, id: 'B' }
@@ -577,7 +570,6 @@
                 }
             }
 
-            // --- FUNGSI EFEK JUICE UP 1: LEDAKAN PARTIKEL ---
             function createExplosion(x, y, color) {
                 for (let i = 0; i < 8; i++) {
                     particles.push({
@@ -592,7 +584,6 @@
                 }
             }
 
-            // --- FUNGSI EFEK JUICE UP 2: SCREEN SHAKE ---
             function triggerScreenShake() {
                 const arena = document.getElementById("game-arena");
                 let intensity = 8;
@@ -608,7 +599,6 @@
                 }, 30);
             }
 
-            // --- AKTIVASI MYSTERY BOX POWER-UP (5 Detik) ---
             function activatePowerUp(type) {
                 if (powerUpTimer) clearTimeout(powerUpTimer);
                 isGhostMode = false;
@@ -685,7 +675,6 @@
                 }
 
                 let rand = Math.random();
-                // 10% Peluang muncul Mystery Box (Power-Up)
                 if (rand < 0.10) {
                     food.type = 'mystery';
                     startFoodCountdown();
@@ -705,7 +694,7 @@
                 timerBar.style.display = "block";
                 timerBar.style.width = "330px";
                 if(food.type === 'mystery') {
-                    timerBar.style.background = "#e11d48"; // Merah muda terang untuk box
+                    timerBar.style.background = "#e11d48"; 
                 } else {
                     timerBar.style.background = "#ffcc00";
                 }
@@ -770,34 +759,26 @@
                 if (isGameOver) return;
                 let head = { x: snake[0].x + dx, y: snake[0].y + dy };
                 
-                // --- INTEGRASI FITUR 1: LOGIKA PORTAL WORMHOLE ---
                 if (portals.length > 0) {
                     if (head.x === portals[0].x && head.y === portals[0].y) {
-                        // Masuk Portal A keluar di Portal B
                         head.x = portals[1].x;
                         head.y = portals[1].y;
                     } else if (head.x === portals[1].x && head.y === portals[1].y) {
-                        // Masuk Portal B keluar di Portal A
                         head.x = portals[0].x;
                         head.y = portals[0].y;
                     }
                 }
 
-                // Deteksi Tabrakan Dinding Luar
                 let hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
                 
-                // Deteksi Tabrakan Badan Sendiri
                 let hitSelf = false;
                 for (let i = 4; i < snake.length; i++) { if (snake[i].x === head.x && snake[i].y === head.y) hitSelf = true; }
 
-                // Deteksi Tabrakan Rintangan Level
                 let hitObstacle = obstacles.some(obs => obs.x === head.x && obs.y === head.y);
 
-                // Proteksi Ghost Mode: Abaikan tabrakan badan & rintangan jika aktif
                 if (isGhostMode) {
                     hitSelf = false;
                     hitObstacle = false;
-                    // Jika menembus dinding luar saat ghost mode, tembus ke sisi seberang
                     if (head.x < 0) head.x = canvas.width - gridSize;
                     if (head.x >= canvas.width) head.x = 0;
                     if (head.y < 0) head.y = canvas.height - gridSize;
@@ -807,7 +788,7 @@
 
                 if (hitWall || hitSelf || hitObstacle) {
                     playHitSound(); 
-                    triggerScreenShake(); // 🎬 Trigger Layar Bergetar saat Tabrakan
+                    triggerScreenShake(); 
                     lives--; 
                     updateStats();
                     if (foodTimer) clearInterval(foodTimer);
@@ -832,7 +813,6 @@
 
                 snake.unshift(head);
 
-                // KETIKA ULAR MEMAKAN MAKANAN
                 if (head.x === food.x && head.y === food.y) {
                     playEatSound(); 
                     
@@ -851,7 +831,6 @@
                     } else if (food.type === 'mystery') {
                         basePoints = 20;
                         foodColor = "#e11d48";
-                        // Acak jenis power up yang didapat
                         let type = Math.random() < 0.5 ? 'ghost' : 'double';
                         activatePowerUp(type);
                     } else {
@@ -859,17 +838,20 @@
                         foodColor = "#ff2222";
                     }
 
-                    // --- INTEGRASI FITUR 2: LOGIKA DOUBLE SCORE ---
                     score += isDoubleScore ? (basePoints * 2) : basePoints;
 
-                    // 🎬 Trigger Efek Ledakan Partikel sesuai warna makanan
                     createExplosion(food.x, food.y, foodColor);
 
                     let targetLevel = Math.floor(score / 200) + 1;
                     if (targetLevel > 10) targetLevel = 10;
                     if (targetLevel > level) {
                         level = targetLevel; 
-                        lives += 1; 
+                        
+                        // Fitur Maksimal Nyawa hanya sampai 5 saja
+                        if (lives < 5) {
+                            lives += 1; 
+                        }
+                        
                         speed = speed * 0.90; 
                         generateObstacles(level); 
                         clearIntervalsAll(); 
@@ -878,19 +860,16 @@
                     updateStats(); generateFood();
                 } else { snake.pop(); }
 
-                // --- PROSES MENGGAMBAR ARENA & ELEMEN ---
                 ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 1. Gambar Portal Wormholes (Jika Level 4 atau 7)
                 portals.forEach(pt => {
-                    ctx.fillStyle = "#a855f7"; // Ungu portal neon
+                    ctx.fillStyle = "#a855f7"; 
                     ctx.shadowColor = "#c084fc";
                     ctx.shadowBlur = 10;
                     ctx.beginPath();
                     ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/2, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Lingkaran inti dalam
                     ctx.fillStyle = "#fff";
                     ctx.beginPath();
                     ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/4, 0, Math.PI * 2);
@@ -898,7 +877,6 @@
                     ctx.shadowBlur = 0;
                 });
 
-                // 2. Gambar Rintangan Tembok
                 ctx.fillStyle = "#7f8c8d"; 
                 obstacles.forEach(obs => {
                     ctx.fillRect(obs.x + 1, obs.y + 1, gridSize - 2, gridSize - 2);
@@ -906,10 +884,8 @@
                     ctx.strokeRect(obs.x + 1, obs.y + 1, gridSize - 2, gridSize - 2);
                 });
 
-                // 3. Gambar Ular
                 snake.forEach((part, index) => {
                     if (isGhostMode) {
-                        // Ular berubah jadi transparan/neon ungu saat Ghost Mode
                         ctx.fillStyle = (index === 0) ? "rgba(168, 85, 247, 0.9)" : "rgba(168, 85, 247, 0.4)";
                     } else {
                         ctx.fillStyle = (index === 0) ? "#00cc44" : ((index % 2 === 0) ? "#00aa33" : "#008822");
@@ -917,7 +893,6 @@
                     ctx.fillRect(part.x + 0.5, part.y + 0.5, gridSize - 1, gridSize - 1);
                 });
                 
-                // 4. Gambar Umpan / Makanan
                 if (food.type === 'gold') {
                     ctx.fillStyle = "#ffcc00"; 
                     ctx.shadowColor = "#ffcc00";
@@ -927,7 +902,6 @@
                     ctx.shadowColor = "#00e5ff";
                     ctx.shadowBlur = 6;
                 } else if (food.type === 'mystery') {
-                    // Mystery Box Kotak Kado Berkedip
                     ctx.fillStyle = (Math.floor(Date.now() / 150) % 2 === 0) ? "#e11d48" : "#f43f5e";
                     ctx.shadowColor = "#e11d48";
                     ctx.shadowBlur = 8;
@@ -937,19 +911,16 @@
                 }
                 
                 if (food.type === 'mystery') {
-                    // Gambar kotak jika tipe mystery box
                     ctx.fillRect(food.x + 1, food.y + 1, gridSize - 2, gridSize - 2);
                 } else {
-                    // Gambar bulat untuk buah biasa
                     ctx.beginPath(); ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.shadowBlur = 0; 
 
-                // 5. Update & Gambar Partikel Ledakan
                 particles.forEach((p, index) => {
                     p.x += p.vx;
                     p.y += p.vy;
-                    p.alpha -= 0.04; // partikel perlahan memudar
+                    p.alpha -= 0.04; 
                     if (p.alpha <= 0) {
                         particles.splice(index, 1);
                     } else {
