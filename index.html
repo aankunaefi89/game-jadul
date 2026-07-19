@@ -64,7 +64,6 @@
             transform: translateY(4px);
         }
 
-        /* Styling Bagian Support dan Logo E-Wallet */
         .support-info {
             width: 90%;
             max-width: 500px;
@@ -82,9 +81,8 @@
             flex-wrap: wrap;
         }
         .wallet-logo {
-            height: 24px; /* Ukuran tinggi logo proporsional */
+            height: 22px; 
             object-fit: contain;
-            filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.1));
         }
         .account-number {
             font-size: 18px;
@@ -97,7 +95,10 @@
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        /* ANIMASI KEREN UNTUK TULISAN CREATED BY AANKUNAEFI */
+        /* Gaya teks penolong jika logo gambar bermasalah */
+        .txt-ovo { font-weight: 900; color: #4d2a86; font-size: 18px; letter-spacing: -0.5px; }
+        .txt-dana { font-weight: 900; color: #108ee9; font-size: 18px; letter-spacing: -0.5px; }
+
         .footer-credit {
             margin-top: 25px;
             font-size: 16px;
@@ -248,15 +249,20 @@
         <div class="support-info">
             <p style="margin: 5px 0;">Support seikhlasnya pengembangan game</p>
             
-            <!-- Menggunakan Logo Gambar Asli OVO & DANA -->
             <div class="wallet-container">
-                <img class="wallet-logo" src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_OVO.svg" alt="OVO">
-                <span style="font-weight: bold; color: #888;">/</span>
-                <img class="wallet-logo" src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" alt="DANA">
+                <!-- Menggunakan Link Gambar OVO Baru Rendition Stabil -->
+                <img class="wallet-logo" src="https://cdn.jsdelivr.net/gh/rokhimin/rokhimin.github.io/assets/images/logo-ovo.png" onerror="this.style.display='none'; document.getElementById('alt-ovo').style.display='inline'" alt="OVO">
+                <span id="alt-ovo" class="txt-ovo" style="display:none;">OVO</span>
+                
+                <span style="font-weight: bold; color: #bbb;">/</span>
+                
+                <!-- Gambar DANA Terbukti Aman -->
+                <img class="wallet-logo" src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" onerror="this.style.display='none'; document.getElementById('alt-dana').style.display='inline'" alt="DANA">
+                <span id="alt-dana" class="txt-dana" style="display:none;">DANA</span>
+                
                 <span class="account-number">085693344161</span>
             </div>
             
-            <!-- Kredit Nama Berkedip Neon Dinamis -->
             <div class="footer-credit">
                 Created by : <span class="animated-name">Aankunaefi</span>
             </div>
