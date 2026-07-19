@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Jadul Aankunaefi</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        /* BANNER UTAMA WELLCOME */
+        .welcome-banner {
+            width: 90%;
+            max-width: 500px;
+            background-color: #cfe2f3;
+            border: 2px solid #6fa8dc;
+            border-radius: 20px;
+            padding: 25px 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .welcome-banner h1 {
+            margin: 0;
+            font-size: 26px;
+            color: #0b5394;
+            letter-spacing: 1px;
+        }
+
+        /* GRID MENU GAME */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 90%;
+            max-width: 500px;
+            margin-bottom: 30px;
+        }
+        .game-btn {
+            background-color: #3d85c6;
+            color: white;
+            border: 2px solid #0b5394;
+            border-radius: 15px;
+            padding: 18px 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 5px #0b5394;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+        }
+        .game-btn:active {
+            box-shadow: 0 1px #0b5394;
+            transform: translateY(4px);
+        }
+
+        /* INFO PENGEMBANG & SUPPORT */
+        .support-info {
+            width: 90%;
+            max-width: 500px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #444;
+            text-align: left;
+            margin-top: 10px;
+        }
+        .support-info p { margin: 6px 0; }
+        .highlight { font-weight: bold; color: #000; }
+        .footer-credit { margin-top: 20px; font-size: 16px; font-weight: bold; }
+        .underline { text-decoration: underline; }
+
+        /* AREA PERMAINAN */
+        .screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .screen.active { display: flex; }
+        
+        #game-arena {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        
+        /* LEADERBOARD / PAPAN SKOR */
+        .leaderboard-box {
+            width: 90%;
+            max-width: 360px;
+            background: #fff;
+            border: 2px solid #0b5394;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .leaderboard-box h3 { margin: 0 0 10px 0; text-align: center; color: #0b5394; }
+        .score-list { list-style: none; padding: 0; margin: 0; }
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #ccc;
+            font-size: 16px;
+        }
+        .score-item:last-child { border-bottom: none; }
+        
+        .back-btn {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px #990000;
+        }
+        .back-btn:active { transform: translateY(2px); box-shadow: 0 2px #990000; }
+    </style>
+</head>
+<body>
+
+    <!-- ================= SCREEN 1: HALAMAN UTAMA ================= -->
+    <div id="main-menu" class="screen active">
+        <div class="welcome-banner">
+            <h1>WELLCOME TO GAME JADUL</h1>
+        </div>
+
+        <div class="game-grid">
+            <button class="game-btn" onclick="openGame('snake')">Snake</button>
+            <button class="game-btn" onclick="openGame('pacman')">Pac Man</button>
+            <button class="game-btn" onclick="openGame('tetris')">Tetris</button>
+            <button class="game-btn" onclick="openGame('pesawat')">Pesawat</button>
+        </div>
+
+        <div class="support-info">
+            <p>Support seikhlasnya pengembangan game</p>
+            <p>Ovo <span class="highlight">085693344161</span></p>
+            <p>Dana <span class="highlight">085693344161</span></p>
+            <p class="footer-credit">Created by : <span class="underline">Aankunaefi</span></p>
+        </div>
+    </div>
+
+    <!-- ================= SCREEN 2: GAME ARENA ================= -->
+    <div id="game-screen" class="screen">
+        <h2 id="active-game-title" style="color: #0b5394; margin-bottom: 10px;">GAME</h2>
+        
+        <div id="game-arena">
+            <!-- Game Canvas & Script Ular akan disuntikkan ke sini secara otomatis -->
+            <div id="canvas-placeholder" style="width:360px; height:360px; color:#fff; display:flex; align-items:center; justify-content:center; text-align:center;">
+                Memuat Permainan...
+            </div>
+        </div>
+
+        <!-- Papan Skor 10 Besar Real-time -->
+        <div class="leaderboard-box">
+            <h3 id="leaderboard-title">🏆 TOP 10 SKOR GLOBAL</h3>
+            <ul id="score-list" class="score-list">
+                <li class="score-item"><span>Memuat data papan skor...</span></li>
+            </ul>
+        </div>
+
+        <button class="back-btn" onclick="backToMenu()">◀ Kembali ke Menu Utama</button>
+    </div>
+
+    <!-- Firebase SDK Modul Online -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // Konfigurasi Database Online Realtime Firebase (Sudah Siap Pakai untuk Game Kamu)
+        const firebaseConfig = {
+            databaseURL: "https://game-jadul-aan-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentGame = "";
+
+        function openGame(gameName) {
+            currentGame = gameName;
+            document.getElementById("main-menu").classList.remove("active");
+            document.getElementById("game-screen").classList.add("active");
+            
+            const titleMap = {
+                'snake': 'SNAKE - AANKUNAEFI',
+                'pacman': 'PAC MAN - AANKUNAEFI',
+                'tetris': 'TETRIS - AANKUNAEFI',
+                'pesawat': 'PESAWAT - AANKUNAEFI'
+            };
+            document.getElementById("active-game-title").innerText = titleMap[gameName];
+            document.getElementById("leaderboard-title").innerText = `🏆 TOP 10 SKOR ${gameName.toUpperCase()}`;
+
+            // Load papan skor khusus untuk game yang dipilih
+            loadLeaderboard(gameName);
+
+            if (gameName === 'snake') {
+                loadSnakeGame();
+            } else {
+                document.getElementById("canvas-placeholder").innerHTML = `<h3>Game ${gameName.toUpperCase()} sedang dalam pengembangan Tahap Berikutnya!</h3>`;
+            }
+        }
+
+        function backToMenu() {
+            // Hentikan game jika sedang berjalan
+            if (typeof clearIntervalsAll === "function") clearIntervalsAll();
+            document.getElementById("game-screen").classList.remove("active");
+            document.getElementById("main-menu").classList.add("active");
+            document.getElementById("canvas-placeholder").innerHTML = "Memuat Permainan...";
+        }
+
+        // --- SISTEM LIHAT PAPAN SKOR 10 BESAR REAL-TIME ---
+        function loadLeaderboard(gameName) {
+            const scoreListUl = document.getElementById("score-list");
+            
+            // Mengambil 10 data skor tertinggi dari database cloud online
+            database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).on('value', (snapshot) => {
+                scoreListUl.innerHTML = "";
+                let scores = [];
+                
+                snapshot.forEach((childSnapshot) => {
+                    scores.push(childSnapshot.val());
+                });
+                
+                // Urutkan dari yang paling besar ke kecil
+                scores.reverse();
+
+                if(scores.length === 0) {
+                    scoreListUl.innerHTML = "<li class='score-item'>Belum ada rekor. Jadilah yang pertama!</li>";
+                    return;
+                }
+
+                scores.forEach((item, index) => {
+                    const li = document.createElement("li");
+                    li.className = "score-item";
+                    li.innerHTML = `<span><b>${index + 1}.</b> ${item.name}</span> <span class="highlight">${item.score} (Lvl ${item.level})</span>`;
+                    scoreListUl.appendChild(li);
+                });
+            });
+        }
+
+        // --- DAFTAR DATABASE BARU JIKA MASUK 10 BESAR ---
+        function checkAndSaveScore(gameName, finalScore, finalLevel) {
+            // Ambil data untuk mengecek apakah skor berhak masuk papan peringkat
+            database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+                let scores = [];
+                snapshot.forEach((childSnapshot) => {
+                    scores.push(childSnapshot.val());
+                });
+
+                // Jika list kurang dari 10 orang, atau skor lebih besar dari skor terendah di leaderboard
+                const isTop10 = scores.length < 10 || finalScore > scores[0].score;
+
+                if (isTop10 && finalScore > 0) {
+                    // Beri jeda sedikit agar layar game over selesai dirender
+                    setTimeout(() => {
+                        const playerName = prompt(`🎉 Keren! Skormu ${finalScore} masuk 10 besar global. Masukkan namamu:`);
+                        if (playerName && playerName.trim() !== "") {
+                            // Simpan ke database cloud online
+                            database.ref('leaderboard/' + gameName).push({
+                                name: playerName.trim(),
+                                score: parseInt(finalScore),
+                                level: parseInt(finalLevel),
+                                timestamp: Date.now()
+                            });
+                        }
+                    }, 500);
+                }
+            });
+        }
+
+        // Tempat penyimpanan interval game agar bisa dimatikan saat back
+        let currentInterval;
+        function clearIntervalsAll() {
+            if (currentInterval) clearInterval(currentInterval);
+        }
+
+        // --- MASUKKAN GAME SNAKE LOGIKA LEVEL (TUNTUNAN TAHAP 3) ---
+        function loadSnakeGame() {
+            const placeholder = document.getElementById("canvas-placeholder");
+            placeholder.innerHTML = `
+                <div style="position:relative; width:330px; height:330px;">
+                    <canvas id="snakeCanvas" width="330" height="330" style="background:#111; border:2px solid #555; display:block;"></canvas>
+                    <div id="snake-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff;">
+                        <h2 id="snake-status" style="color:#ff4444; margin:0 0 10px 0;">GAME OVER</h2>
+                        <p style="margin:5px 0;">Skor: <span id="snake-final-score" style="font-weight:bold; color:lime;">0</span></p>
+                        <button onclick="startSnake()" style="margin-top:15px; padding:10px 20px; font-size:16px; font-weight:bold; background:lime; border:none; border-radius:5px; cursor:pointer;">MAIN LAGI</button>
+                    </div>
+                </div>
+                <div id="snake-stats" style="color:#fff; width:100%; display:flex; justify-content:space-between; margin-top:8px; font-size:15px;">
+                    <span>❤️ Nyawa: <b id="snk-lives">3</b></span>
+                    <span>⭐ Level: <b id="snk-level">1</b></span>
+                    <span>🎯 Skor: <b id="snk-score">0</b></span>
+                </div>
+                <!-- D-Pad untuk Mobile / HP -->
+                <div style="display:grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 45px); gap:6px; margin-top:12px; justify-content:center;">
+                    <div></div><button onclick="window.moveSnk('ArrowUp')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▲</button><div></div>
+                    <button onclick="window.moveSnk('ArrowLeft')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">◀</button><div></div><button onclick="window.moveSnk('ArrowRight')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▶</button>
+                    <div></div><button onclick="window.moveSnk('ArrowDown')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▼</button><div></div>
+                </div>
+            `;
+
+            // Suntikkan logika game snake ter-update dengan sistem level 1-10
+            initSnakeLogic();
+        }
+
+        function initSnakeLogic() {
+            const canvas = document.getElementById("snakeCanvas");
+            if(!canvas) return;
+            const ctx = canvas.getContext("2d");
+            
+            const gridSize = 15;
+            let snake, food, score, level, lives, dx, dy, isGameOver, speed;
+
+            window.startSnake = function() {
+                snake = [{ x: 150, y: 150 }, { x: 135, y: 150 }, { x: 120, y: 150 }];
+                food = {};
+                score = 0;
+                level = 1;
+                lives = 3;
+                dx = gridSize;
+                dy = 0;
+                isGameOver = false;
+                speed = 130; // Kecepatan awal Level 1
+                
+                document.getElementById("snake-overlay").style.display = "none";
+                updateStats();
+                generateFood();
+                
+                clearIntervalsAll();
+                currentInterval = setInterval(gameLoop, speed);
+            };
+
+            function updateStats() {
+                document.getElementById("snk-lives").innerText = lives;
+                document.getElementById("snk-level").innerText = level;
+                document.getElementById("snk-score").innerText = score;
+            }
+
+            function generateFood() {
+                food.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+                food.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+                snake.forEach(part => {
+                    if (part.x === food.x && part.y === food.y) generateFood();
+                });
+            }
+
+            window.moveSnk = function(targetKey) {
+                if (isGameOver) return;
+                const goingUp = dy === -gridSize;
+                const goingDown = dy === gridSize;
+                const goingRight = dx === gridSize;
+                const goingLeft = dx === -gridSize;
+
+                if (targetKey === "ArrowLeft" && !goingRight) { dx = -gridSize; dy = 0; }
+                if (targetKey === "ArrowUp" && !goingDown) { dx = 0; dy = -gridSize; }
+                if (targetKey === "ArrowRight" && !goingLeft) { dx = gridSize; dy = 0; }
+                if (targetKey === "ArrowDown" && !goingUp) { dx = 0; dy = gridSize; }
+            };
+
+            document.onkeydown = function(e) {
+                window.moveSnk(e.key);
+            };
+
+            function gameLoop() {
+                if (isGameOver) return;
+
+                // Gerakkan ular
+                const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+                
+                // Cek tabrakan dinding atau ekor sendiri
+                let hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
+                let hitSelf = false;
+                for (let i = 4; i < snake.length; i++) {
+                    if (snake[i].x === head.x && snake[i].y === head.y) hitSelf = true;
+                }
+
+                if (hitWall || hitSelf) {
+                    lives--;
+                    updateStats();
+                    if (lives > 0) {
+                        // Reset posisi ular saja tanpa game over (nyawa berkurang)
+                        snake = [{ x: 150, y: 150 }, { x: 135, y: 150 }, { x: 120, y: 150 }];
+                        dx = gridSize; dy = 0;
+                        return;
+                    } else {
+                        // Nyawa habis = GAME OVER
+                        isGameOver = true;
+                        clearIntervalsAll();
+                        document.getElementById("snake-final-score").innerText = score;
+                        document.getElementById("snake-overlay").style.display = "flex";
+                        // Cek peringkat di database online global
+                        checkAndSaveScore('snake', score, level);
+                        return;
+                    }
+                }
+
+                snake.unshift(head);
+
+                // Jika makan apel
+                if (head.x === food.x && head.y === food.y) {
+                    score += 10;
+                    
+                    // --- SISTEM TINGKAT KESULITAN & KENAIKAN LEVEL ---
+                    // Level naik setiap kelipatan 200 poin (Maks level 10)
+                    let targetLevel = Math.floor(score / 200) + 1;
+                    if (targetLevel > 10) targetLevel = 10;
+                    
+                    if (targetLevel > level) {
+                        level = targetLevel;
+                        lives += 1; // Tambah nyawa bonus 1x per naik level
+                        speed = speed * 0.90; // Tingkat kesulitan meningkat: kecepatan bertambah 10% lebih cepat (delay dikurangi 10%)
+                        clearIntervalsAll();
+                        currentInterval = setInterval(gameLoop, speed);
+                    }
+                    
+                    updateStats();
+                    generateFood();
+                } else {
+                    snake.pop();
+                }
+
+                // Gambar visual ular lucu
+                ctx.fillStyle = "#111";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                snake.forEach((part, index) => {
+                    if (index === 0) {
+                        ctx.fillStyle = "#00cc44";
+                        ctx.beginPath();
+                        ctx.arc(part.x + gridSize/2, part.y + gridSize/2, gridSize/2 - 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = (index % 2 === 0) ? "#00aa33" : "#008822";
+                        ctx.beginPath();
+                        ctx.roundRect(part.x + 0.5, part.y + 0.5, gridSize - 1, gridSize - 1, 3);
+                        ctx.fill();
+                    }
+                });
+
+                // Gambar Makanan Apel bulat
+                ctx.fillStyle = "#ff2222";
+                ctx.beginPath();
+                ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Jalankan ular pertama kali
+            window.startSnake();
+        }
+    </script>
+</body>
+</html>
