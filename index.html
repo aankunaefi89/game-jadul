@@ -407,7 +407,12 @@
                     <span>🎯 Skor: <b id="snk-score">0</b></span>
                 </div>
 
-                <div style="color:#aaa; font-size:11px; margin-top:4px; font-style:italic;">💡 Tips HP: Geser/Swipe jari langsung di atas kotak hitam game!</div>
+                <!-- Indikator Batas Durasi Makanan Emas -->
+                <div id="food-timer-bar" style="width: 330px; height: 6px; background: #ffcc00; margin-top: 5px; display: none; transition: width 0.1s linear; border-radius:3px;"></div>
+
+                <div style="color:#aaa; font-size:11px; margin-top:6px; font-style:italic; text-align:center;">
+                    🍎 Merah (+10) | 👑 Emas (+50, Cepat Hilang!) | 🌀 Biru (Rem/Perlambat)
+                </div>
                 
                 <div style="display:grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(3, 48px); gap:10px; margin-top:10px; justify-content:center; width:330px;">
                     <div></div><button id="btn-up" style="background:#444; color:#fff; border:1px solid #666; border-radius:8px; font-size:22px; font-weight:bold;">▲</button><div></div>
@@ -425,13 +430,20 @@
             
             const gridSize = 15;
             let snake, food, score, level, lives, dx, dy, isGameOver, speed;
+            let foodTimer = null;
+            let foodTimeLeft = 0;
+            const defaultSpeed = 130;
 
             window.startSnake = function() {
                 snake = [{ x: 150, y: 150 }, { x: 135, y: 150 }, { x: 120, y: 150 }];
-                food = {}; score = 0; level = 1; lives = 3; dx = gridSize; dy = 0;
-                isGameOver = false; speed = 130;
+                food = { x: 0, y: 0, type: 'normal' }; 
+                score = 0; level = 1; lives = 3; dx = gridSize; dy = 0;
+                isGameOver = false; speed = defaultSpeed;
                 
+                if (foodTimer) clearInterval(foodTimer);
                 document.getElementById("snake-overlay").style.display = "none";
+                document.getElementById("food-timer-bar").style.display = "none";
+                
                 updateStats();
                 generateFood();
                 
@@ -446,9 +458,41 @@
             }
 
             function generateFood() {
+                if (foodTimer) clearInterval(foodTimer);
+                document.getElementById("food-timer-bar").style.display = "none";
+
                 food.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
                 food.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+                
                 snake.forEach(part => { if (part.x === food.x && part.y === food.y) generateFood(); });
+
+                let rand = Math.random();
+                if (rand < 0.15) { 
+                    food.type = 'gold'; // Apel Emas (15% Peluang)
+                    startFoodCountdown();
+                } else if (rand < 0.28) { 
+                    food.type = 'slow'; // Apel Biru (13% Peluang)
+                } else {
+                    food.type = 'normal'; // Normal Merah
+                }
+            }
+
+            function startFoodCountdown() {
+                foodTimeLeft = 60; // 6 detik
+                const timerBar = document.getElementById("food-timer-bar");
+                timerBar.style.display = "block";
+                timerBar.style.width = "330px";
+
+                foodTimer = setInterval(() => {
+                    if (isGameOver) { clearInterval(foodTimer); return; }
+                    foodTimeLeft--;
+                    timerBar.style.width = `${(foodTimeLeft / 60) * 330}px`;
+
+                    if (foodTimeLeft <= 0) {
+                        clearInterval(foodTimer);
+                        generateFood();
+                    }
+                }, 100);
             }
 
             window.moveSnk = function(targetKey) {
@@ -504,9 +548,12 @@
 
                 if (hitWall || hitSelf) {
                     lives--; updateStats();
+                    if (foodTimer) clearInterval(foodTimer);
+                    document.getElementById("food-timer-bar").style.display = "none";
+
                     if (lives > 0) {
                         snake = [{ x: 150, y: 150 }, { x: 135, y: 150 }, { x: 120, y: 150 }];
-                        dx = gridSize; dy = 0; return;
+                        dx = gridSize; dy = 0; generateFood(); return;
                     } else {
                         isGameOver = true; clearIntervalsAll();
                         globalScore = score; globalLevel = level;
@@ -519,12 +566,26 @@
 
                 snake.unshift(head);
                 if (head.x === food.x && head.y === food.y) {
-                    score += 10;
+                    
+                    if (food.type === 'gold') {
+                        score += 50;
+                    } else if (food.type === 'slow') {
+                        score += 10;
+                        speed = Math.min(speed + 25, defaultSpeed); 
+                        clearIntervalsAll();
+                        currentInterval = setInterval(gameLoop, speed);
+                    } else {
+                        score += 10;
+                    }
+
                     let targetLevel = Math.floor(score / 200) + 1;
                     if (targetLevel > 10) targetLevel = 10;
                     if (targetLevel > level) {
-                        level = targetLevel; lives += 1; speed = speed * 0.90;
-                        clearIntervalsAll(); currentInterval = setInterval(gameLoop, speed);
+                        level = targetLevel; 
+                        lives += 1; 
+                        speed = speed * 0.90; 
+                        clearIntervalsAll(); 
+                        currentInterval = setInterval(gameLoop, speed);
                     }
                     updateStats(); generateFood();
                 } else { snake.pop(); }
@@ -534,7 +595,22 @@
                     ctx.fillStyle = (index === 0) ? "#00cc44" : ((index % 2 === 0) ? "#00aa33" : "#008822");
                     ctx.fillRect(part.x + 0.5, part.y + 0.5, gridSize - 1, gridSize - 1);
                 });
-                ctx.fillStyle = "#ff2222"; ctx.beginPath(); ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2); ctx.fill();
+                
+                if (food.type === 'gold') {
+                    ctx.fillStyle = "#ffcc00"; 
+                    ctx.shadowColor = "#ffcc00";
+                    ctx.shadowBlur = 6;
+                } else if (food.type === 'slow') {
+                    ctx.fillStyle = "#00e5ff"; 
+                    ctx.shadowColor = "#00e5ff";
+                    ctx.shadowBlur = 6;
+                } else {
+                    ctx.fillStyle = "#ff2222"; 
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.beginPath(); ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0; 
             }
             window.startSnake();
         }
