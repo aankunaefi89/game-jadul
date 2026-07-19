@@ -1271,13 +1271,28 @@
                     });
                 }
 
-                // Pac Man
-                ctx.fillStyle = "#ffff00";
-                ctx.beginPath();
-                let mouthAngle = (Math.floor(Date.now() / 150) % 2 === 0) ? 0.25 : 0.05;
-                ctx.arc(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2, tileSize / 2 - 2, mouthAngle * Math.PI, (2 - mouthAngle) * Math.PI);
-                ctx.lineTo(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2);
-                ctx.fill();
+                // ================= PERBAIKAN ROTASI MULUT PAC MAN =================
+                let rotation = 0;[cite: 11]
+                if (pacman.dx === 1) rotation = 0;[cite: 11]
+                else if (pacman.dy === 1) rotation = 0.5 * Math.PI;[cite: 11]
+                else if (pacman.dx === -1) rotation = Math.PI;[cite: 11]
+                else if (pacman.dy === -1) rotation = 1.5 * Math.PI;[cite: 11]
+
+                ctx.fillStyle = "#ffff00";[cite: 11]
+                ctx.beginPath();[cite: 11]
+                let mouthAngle = (Math.floor(Date.now() / 150) % 2 === 0) ? 0.2 : 0.02;[cite: 11]
+
+                // Menggambar arc dengan sudut yang sudah dirotasi sesuai arah[cite: 11]
+                ctx.arc([cite: 11]
+                    pacman.x * tileSize + tileSize / 2, [cite: 11]
+                    pacman.y * tileSize + tileSize / 2, [cite: 11]
+                    tileSize / 2 - 2,  [cite: 11]
+                    rotation + mouthAngle * Math.PI, [cite: 11]
+                    rotation + (2 - mouthAngle) * Math.PI[cite: 11]
+                );[cite: 11]
+                ctx.lineTo(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2);[cite: 11]
+                ctx.fill();[cite: 11]
+                // ==================================================================
 
                 // Hantu
                 ghosts.forEach(ghost => {
