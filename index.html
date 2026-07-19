@@ -960,7 +960,7 @@
                 </div>
 
                 <div style="color:#aaa; font-size:11px; margin-top:12px; font-style:italic; text-align:center;">
-                    Makan seluruh titik kuning cerah dan hindari Hantu!
+                    Makan seluruh titik kuning cerah, ambil Super Dot besar untuk membuat hantu takut!
                 </div>
                 
                 <div style="display:grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(3, 48px); gap:10px; margin-top:10px; justify-content:center; width:330px;">
@@ -982,7 +982,7 @@
             let pacman = { x: 1, y: 1, dx: 0, dy: 0, nextDx: 0, nextDy: 0 };
             let ghosts = [];
             let dots = [];
-            let superDots = []; // Menampung Super Dot keuntungan pemain
+            let superDots = [];
 
             // Status Power-Up (Frightened Mode)
             let isFrightenedMode = false;
@@ -1011,7 +1011,7 @@
                 dots = [];
                 superDots = [];
                 
-                // Posisi pojok labirin untuk Super Dot (Keuntungan Pemain)
+                // Posisi pojok labirin untuk Super Dot
                 const superDotPositions = [
                     {r: 1, c: 1}, {r: 1, c: 13},
                     {r: 13, c: 1}, {r: 13, c: 13}
@@ -1022,7 +1022,6 @@
                         if (mapLayout[r][c] === 0) {
                             if ((r === 7 && c === 7) || (r === 7 && c === 8)) continue;
                             
-                            // Cek apakah posisi ini dialokasikan untuk Super Dot
                             let isSuper = superDotPositions.some(p => p.r === r && p.c === c);
                             if (isSuper) {
                                 superDots.push({ x: c, y: r });
@@ -1039,7 +1038,7 @@
                 pacman.dx = 0; pacman.dy = 0;
                 pacman.nextDx = 0; pacman.nextDy = 0;
 
-                // Leveling: Jumlah hantu bertambah seiring tingginya Level
+                // Jumlah hantu bertambah seiring tingginya Level
                 ghosts = [
                     { id: 1, x: 7, y: 7, color: '#ff0000', baseColor: '#ff0000', dx: 1, dy: 0 }, // Blinky
                     { id: 2, x: 8, y: 7, color: '#ffb8ff', baseColor: '#ffb8ff', dx: -1, dy: 0 } // Pinky
@@ -1062,7 +1061,7 @@
                 frightenedTimer = setTimeout(() => {
                     isFrightenedMode = false;
                     ghosts.forEach(g => g.color = g.baseColor); // Kembalikan warna asli
-                }, 6000); // Durasi keuntungan: 6 Detik
+                }, 6000); // Durasi: 6 Detik
             }
 
             window.startPacman = function() {
@@ -1077,7 +1076,6 @@
                 updateStats();
 
                 clearIntervalsAll();
-                // Kecepatan Pacman konstan biar pas dimainkan
                 currentInterval = setInterval(gameLoop, 200); 
 
                 stopBgm();
@@ -1134,13 +1132,13 @@
                     }
                 }
 
-                // 2. Makan Super Dot (Mekanik Keuntungan Pemain)
+                // 2. Makan Super Dot
                 for (let i = superDots.length - 1; i >= 0; i--) {
                     if (superDots[i].x === pacman.x && superDots[i].y === pacman.y) {
                         superDots.splice(i, 1);
                         score += 50;
                         playEatSound();
-                        activateSuperDot(); // Aktifkan mode hantu takut
+                        activateSuperDot(); 
                         updateStats();
                     }
                 }
@@ -1156,9 +1154,9 @@
 
                 // Logika Pergerakan Hantu & AI Kesulitan
                 ghosts.forEach(ghost => {
-                    // Fitur Fleksibilitas Kecepatan: Mode Frightened bikin hantu jalan selang-seling (lambat)
+                    // Mode Frightened bikin hantu jalan selang-seling (lambat 50%)
                     if (isFrightenedMode && (Math.floor(Date.now() / 200) % 2 === 0)) {
-                        return; // Skip langkah tick ini biar melambat 50%
+                        return; 
                     }
 
                     let validMoves = [];
@@ -1179,9 +1177,9 @@
                     }
 
                     let chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
-                    let minDist = isFrightenedMode ? 0 : 999; // Kalau takut, cari jarak terjauh atau acak
+                    let minDist = isFrightenedMode ? 0 : 999; 
 
-                    // Akurasi AI ngejar pemain bertambah seiring tingginya level
+                    // Akurasi AI bertambah seiring level
                     let chaseChance = 0.50 + (level * 0.05); 
                     if (chaseChance > 0.85) chaseChance = 0.85; 
 
@@ -1197,7 +1195,7 @@
                                 chosen = m;
                             }
                         } else {
-                            // Kejar Pacman berdasarkan tingkat kesulitan (Level)
+                            // Kejar Pacman
                             if (dist < minDist && Math.random() < chaseChance) {
                                 minDist = dist;
                                 chosen = m;
@@ -1213,15 +1211,15 @@
                     // Deteksi Tabrakan
                     if (ghost.x === pacman.x && ghost.y === pacman.y) {
                         if (isFrightenedMode) {
-                            // Keuntungan Pemain: Hantu dimakan!
+                            // Hantu dimakan!
                             playEatSound();
-                            score += 200; // Bonus poin besar
+                            score += 200; 
                             updateStats();
                             // Kembalikan hantu ke titik tengah (Spawn)
                             ghost.x = 7;
                             ghost.y = 7;
                         } else {
-                            // Pemain yang terkena hantu
+                            // Pemain kalah/terkena hantu
                             playHitSound();
                             lives--;
                             updateStats();
@@ -1263,7 +1261,7 @@
                     ctx.fill();
                 });
 
-                // Super Dots (Keuntungan - Lebih besar dan berkedip)
+                // Super Dots (Lebih besar dan berkedip)
                 if (Math.floor(Date.now() / 250) % 2 === 0) {
                     ctx.fillStyle = "#ffbb00";
                     superDots.forEach(sd => {
@@ -1295,7 +1293,7 @@
 
                     // Mata Hantu (Beda tampilan saat Frightened Mode)
                     if (isFrightenedMode) {
-                        ctx.fillStyle = "#ffffff"; // Mulut/Mata panik kecil
+                        ctx.fillStyle = "#ffffff"; 
                         ctx.fillRect(gx - 4, gy - 2, 2, 2);
                         ctx.fillRect(gx + 2, gy - 2, 2, 2);
                     } else {
@@ -1305,230 +1303,6 @@
                         ctx.arc(gx + 3, gy - 3, 2.5, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                });
-            }
-
-            window.startPacman();
-        }
-            function initMapData() {
-                dots = [];
-                for (let r = 0; r < mapLayout.length; r++) {
-                    for (let c = 0; c < mapLayout[r].length; c++) {
-                        if (mapLayout[r][c] === 0) {
-                            // Jangan taruh koin di posisi spawn Pacman / Hantu
-                            if ((r === 1 && c === 1) || (r === 7 && c === 7) || (r === 7 && c === 8)) continue;
-                            dots.push({ x: c, y: r });
-                        }
-                    }
-                }
-            }
-
-            function resetPositions() {
-                pacman.x = 1; pacman.y = 1;
-                pacman.dx = 0; pacman.dy = 0;
-                pacman.nextDx = 0; pacman.nextDy = 0;
-
-                ghosts = [
-                    { x: 7, y: 7, color: '#ff0000', dx: 1, dy: 0 }, // Blinky
-                    { x: 8, y: 7, color: '#ffb8ff', dx: -1, dy: 0 } // Pinky
-                ];
-            }
-
-            window.startPacman = function() {
-                initAudio();
-                score = 0; level = 1; lives = 3; isGameOver = false;
-                document.getElementById("pacman-overlay").style.display = "none";
-                
-                initMapData();
-                resetPositions();
-                updateStats();
-
-                clearIntervalsAll();
-                currentInterval = setInterval(gameLoop, 220); // Kecepatan Pacman
-
-                stopBgm();
-                startBgm();
-            };
-
-            function updateStats() {
-                document.getElementById("pc-lives").innerText = lives;
-                document.getElementById("pc-level").innerText = level;
-                document.getElementById("pc-score").innerText = score;
-            }
-
-            window.movePacman = function(dir) {
-                initAudio();
-                if (isGameOver) return;
-                if (dir === 'ArrowUp')    { pacman.nextDx = 0;  pacman.nextDy = -1; }
-                if (dir === 'ArrowDown')  { pacman.nextDx = 0;  pacman.nextDy = 1;  }
-                if (dir === 'ArrowLeft')  { pacman.nextDx = -1; pacman.nextDy = 0;  }
-                if (dir === 'ArrowRight') { pacman.nextDx = 1;  pacman.nextDy = 0;  }
-            };
-
-            document.onkeydown = function(e) { window.movePacman(e.key); };
-
-            document.getElementById("btn-up").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowUp'); });
-            document.getElementById("btn-down").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowDown'); });
-            document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowLeft'); });
-            document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); window.movePacman('ArrowRight'); });
-
-            function isTileWall(x, y) {
-                if (x < 0 || x >= 15 || y < 0 || y >= 15) return true;
-                return mapLayout[y][x] === 1;
-            }
-
-            function gameLoop() {
-                if (isGameOver) return;
-
-                // Cek input arah berikutnya (apakah membentur tembok?)
-                if (!isTileWall(pacman.x + pacman.nextDx, pacman.y + pacman.nextDy)) {
-                    pacman.dx = pacman.nextDx;
-                    pacman.dy = pacman.nextDy;
-                }
-
-                // Jalankan Pacman
-                if (!isTileWall(pacman.x + pacman.dx, pacman.y + pacman.dy)) {
-                    pacman.x += pacman.dx;
-                    pacman.y += pacman.dy;
-                }
-
-                // Logika Makan Dots
-                for (let i = dots.length - 1; i >= 0; i--) {
-                    if (dots[i].x === pacman.x && dots[i].y === pacman.y) {
-                        dots.splice(i, 1);
-                        score += 10;
-                        playEatSound();
-                        updateStats();
-                    }
-                }
-
-                // Naik Level bila Dots Habis
-                if (dots.length === 0) {
-                    level++;
-                    if (lives < 5) { lives++; } // Kap maksimal nyawa di 5
-                    initMapData();
-                    resetPositions();
-                    updateStats();
-                }
-
-                // Logika Hantu (AI Sederhana)
-                ghosts.forEach(ghost => {
-                    // Cari semua arah alternatif yang tidak menabrak tembok
-                    let validMoves = [];
-                    const directions = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
-                    
-                    directions.forEach(d => {
-                        if (!isTileWall(ghost.x + d.x, ghost.y + d.y)) {
-                            // Jangan langsung putar balik 180 derajat ke belakang kecuali terpaksa
-                            if (!(d.x === -ghost.dx && d.y === -ghost.dy)) {
-                                validMoves.push(d);
-                            }
-                        }
-                    });
-
-                    if (validMoves.length === 0) {
-                        directions.forEach(d => {
-                            if (!isTileWall(ghost.x + d.x, ghost.y + d.y)) validMoves.push(d);
-                        });
-                    }
-
-                    // Kejar koordinat Pacman (AI dasar)
-                    let chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
-                    let minDist = 999;
-
-                    validMoves.forEach(m => {
-                        let nextX = ghost.x + m.x;
-                        let nextY = ghost.y + m.y;
-                        let dist = Math.abs(nextX - pacman.x) + Math.abs(nextY - pacman.y);
-                        // Peluang 60% mengejar langsung, sisanya acak biar menantang
-                        if (dist < minDist && Math.random() < 0.65) {
-                            minDist = dist;
-                            chosen = m;
-                        }
-                    });
-
-                    if (chosen) {
-                        ghost.dx = chosen.x;
-                        ghost.dy = chosen.y;
-                        ghost.x += ghost.dx;
-                        ghost.y += ghost.dy;
-                    }
-
-                    // Deteksi Tabrakan Pacman dengan Hantu
-                    if (ghost.x === pacman.x && ghost.y === pacman.y) {
-                        playHitSound();
-                        lives--;
-                        updateStats();
-
-                        if (lives > 0) {
-                            resetPositions();
-                        } else {
-                            isGameOver = true;
-                            clearIntervalsAll();
-                            stopBgm();
-                            globalScore = score; globalLevel = level;
-                            document.getElementById("pacman-final-score").innerText = score;
-                            document.getElementById("pacman-overlay").style.display = "flex";
-                        }
-                    }
-                });
-
-                // --- PROSES MENGGAMBAR ELEMEN GAME ---
-                ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // 1. Gambar Labirin
-                for (let r = 0; r < mapLayout.length; r++) {
-                    for (let c = 0; c < mapLayout[r].length; c++) {
-                        if (mapLayout[r][c] === 1) {
-                            ctx.fillStyle = "#1b3a4b";
-                            ctx.fillRect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2);
-                            ctx.strokeStyle = "#005f73";
-                            ctx.strokeRect(c * tileSize + 1, r * tileSize + 1, tileSize - 2, tileSize - 2);
-                        }
-                    }
-                }
-
-                // 2. Gambar Makanan (Dots)
-                ctx.fillStyle = "#ffcc00";
-                dots.forEach(d => {
-                    ctx.beginPath();
-                    ctx.arc(d.x * tileSize + tileSize / 2, d.y * tileSize + tileSize / 2, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-
-                // 3. Gambar Pac Man
-                ctx.fillStyle = "#ffff00";
-                ctx.beginPath();
-                // Efek animasi mulut berkedip sedikit berdasarkan waktu tick
-                let mouthAngle = (Math.floor(Date.now() / 200) % 2 === 0) ? 0.2 : 0.0;
-                ctx.arc(
-                    pacman.x * tileSize + tileSize / 2, 
-                    pacman.y * tileSize + tileSize / 2, 
-                    tileSize / 2 - 2, 
-                    mouthAngle * Math.PI, 
-                    (2 - mouthAngle) * Math.PI
-                );
-                ctx.lineTo(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2);
-                ctx.fill();
-
-                // 4. Gambar Para Hantu
-                ghosts.forEach(ghost => {
-                    ctx.fillStyle = ghost.color;
-                    ctx.beginPath();
-                    let gx = ghost.x * tileSize + tileSize / 2;
-                    let gy = ghost.y * tileSize + tileSize / 2;
-                    ctx.arc(gx, gy - 2, tileSize / 2 - 2, Math.PI, 0, false);
-                    ctx.lineTo(gx + tileSize / 2 - 2, gy + tileSize / 2);
-                    ctx.lineTo(gx - tileSize / 2 + 2, gy + tileSize / 2);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Mata Hantu
-                    ctx.fillStyle = "#fff";
-                    ctx.beginPath();
-                    ctx.arc(gx - 3, gy - 3, 2.5, 0, Math.PI * 2);
-                    ctx.arc(gx + 3, gy - 3, 2.5, 0, Math.PI * 2);
-                    ctx.fill();
                 });
             }
 
