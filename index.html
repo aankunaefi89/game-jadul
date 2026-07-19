@@ -171,6 +171,7 @@
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
             box-sizing: border-box;
+            transition: transform 0.05s linear; /* Untuk efek screen shake */
         }
 
         .back-btn {
@@ -216,6 +217,15 @@
             font-weight: bold;
             border-radius: 4px;
             width: 85%;
+        }
+
+        /* Gaya teks indikator Power-Up aktif */
+        #powerup-status {
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            height: 15px;
         }
 
         @media (max-width: 600px) {
@@ -496,11 +506,14 @@
                     <button id="btn-bgm-toggle" onclick="toggleBgmToggle()" style="background:#27ae60; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-weight:bold; cursor:pointer; font-size:11px;">🎵 BGM: ON</button>
                 </div>
 
-                <!-- Indikator Batas Durasi Makanan Emas -->
+                <!-- Status Berjalan Power Up -->
+                <div id="powerup-status" style="color: #ffc107;"></div>
+
+                <!-- Indikator Batas Durasi Makanan Emas & Mystery Box -->
                 <div id="food-timer-bar" style="width: 330px; height: 6px; background: #ffcc00; margin-top: 5px; display: none; transition: width 0.1s linear; border-radius:3px;"></div>
 
                 <div style="color:#aaa; font-size:11px; margin-top:6px; font-style:italic; text-align:center;">
-                    🍎 Merah (+10) | 👑 Emas (+50, Cepat Hilang!) | 🌀 Biru (Rem/Perlambat)
+                    🍎 Merah (+10) | 👑 Emas (+50) | 🌀 Biru (Rem) | 🎁 Box (Power-Up!)
                 </div>
                 
                 <div style="display:grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(3, 48px); gap:10px; margin-top:10px; justify-content:center; width:330px;">
@@ -521,50 +534,120 @@
             let snake, food, score, level, lives, dx, dy, isGameOver, speed;
             let foodTimer = null;
             let foodTimeLeft = 0;
-            let obstacles = []; // Menyimpan koordinat rintangan level aktif
+            let obstacles = [];
             const defaultSpeed = 130;
 
-            // --- FUNGSI PEMBUAT RINTANGAN SESUAI LEVEL ---
+            // --- DEKLARASI VARIABEL FITUR BARU ---
+            let portals = [];          // Menyimpan koordinat dua portal
+            let particles = [];        // Efek Ledakan Partikel
+            let isGhostMode = false;   // Menembus tembok & tubuh sendiri
+            let isDoubleScore = false; // Pengali skor ganda
+            let powerUpTimer = null;   // Waktu aktif efek 5 detik
+
             function generateObstacles(lvl) {
                 obstacles = [];
-                let mid = 11 * gridSize; // Posisi tengah canvas (330 / 15 = 22 blok, tengahnya 11)
+                portals = []; // Reset portal setiap ganti level
+                let mid = 11 * gridSize;
 
                 if (lvl === 3 || lvl === 4) {
-                    // Level 3-4: Rintangan berbentuk tanda tambah (+) di tengah
                     for(let i = -3; i <= 3; i++) {
                         obstacles.push({ x: mid + (i * gridSize), y: mid });
                         if(i !== 0) obstacles.push({ x: mid, y: mid + (i * gridSize) });
                     }
                 } else if (lvl >= 5) {
-                    // Level 5+: Desain Labirin Sederhana (4 Tembok Siku di Sudut Dalam)
                     for (let i = 4; i <= 8; i++) {
-                        // Kiri atas
                         obstacles.push({ x: i * gridSize, y: 5 * gridSize });
                         obstacles.push({ x: 5 * gridSize, y: i * gridSize });
-                        // Kanan atas
                         obstacles.push({ x: (22 - i) * gridSize, y: 5 * gridSize });
                         obstacles.push({ x: 17 * gridSize, y: i * gridSize });
-                        // Kiri bawah
                         obstacles.push({ x: i * gridSize, y: 17 * gridSize });
                         obstacles.push({ x: 5 * gridSize, y: (22 - i) * gridSize });
-                        // Kanan bawah
                         obstacles.push({ x: (22 - i) * gridSize, y: 17 * gridSize });
                         obstacles.push({ x: 17 * gridSize, y: (22 - i) * gridSize });
                     }
                 }
+
+                // AKTIVASI PORTAL PADA LEVEL DITENTUKAN (Level 4 dan Level 7)
+                if (lvl === 4 || lvl === 7) {
+                    // Taruh portal di posisi aman yang kosong
+                    portals = [
+                        { x: 2 * gridSize, y: 2 * gridSize, id: 'A' },
+                        { x: 19 * gridSize, y: 19 * gridSize, id: 'B' }
+                    ];
+                }
+            }
+
+            // --- FUNGSI EFEK JUICE UP 1: LEDAKAN PARTIKEL ---
+            function createExplosion(x, y, color) {
+                for (let i = 0; i < 8; i++) {
+                    particles.push({
+                        x: x + gridSize / 2,
+                        y: y + gridSize / 2,
+                        vx: (Math.random() - 0.5) * 5,
+                        vy: (Math.random() - 0.5) * 5,
+                        radius: Math.random() * 3 + 1,
+                        alpha: 1,
+                        color: color
+                    });
+                }
+            }
+
+            // --- FUNGSI EFEK JUICE UP 2: SCREEN SHAKE ---
+            function triggerScreenShake() {
+                const arena = document.getElementById("game-arena");
+                let intensity = 8;
+                let shakeInterval = setInterval(() => {
+                    let dx = (Math.random() - 0.5) * intensity;
+                    let dy = (Math.random() - 0.5) * intensity;
+                    arena.style.transform = `translate(${dx}px, ${dy}px)`;
+                    intensity *= 0.8; 
+                    if (intensity < 1) {
+                        clearInterval(shakeInterval);
+                        arena.style.transform = "translate(0px, 0px)";
+                    }
+                }, 30);
+            }
+
+            // --- AKTIVASI MYSTERY BOX POWER-UP (5 Detik) ---
+            function activatePowerUp(type) {
+                if (powerUpTimer) clearTimeout(powerUpTimer);
+                isGhostMode = false;
+                isDoubleScore = false;
+
+                const statusDiv = document.getElementById("powerup-status");
+
+                if (type === 'ghost') {
+                    isGhostMode = true;
+                    statusDiv.innerText = "👻 GHOST MODE ACTIVE (5s)!";
+                    statusDiv.style.color = "#a855f7";
+                } else if (type === 'double') {
+                    isDoubleScore = true;
+                    statusDiv.innerText = "💰 DOUBLE SCORE ACTIVE (5s)!";
+                    statusDiv.style.color = "#22c55e";
+                }
+
+                powerUpTimer = setTimeout(() => {
+                    isGhostMode = false;
+                    isDoubleScore = false;
+                    statusDiv.innerText = "";
+                }, 5000);
             }
 
             window.startSnake = function() {
                 initAudio();
-                // Spawn awal ular digeser sedikit agar aman dari rintangan tengah level 3
                 snake = [{ x: 45, y: 45 }, { x: 30, y: 45 }, { x: 15, y: 45 }];
                 food = { x: 0, y: 0, type: 'normal' }; 
                 score = 0; level = 1; lives = 3; dx = gridSize; dy = 0;
                 isGameOver = false; speed = defaultSpeed;
+                particles = [];
+                isGhostMode = false;
+                isDoubleScore = false;
+                if (powerUpTimer) clearTimeout(powerUpTimer);
                 
                 if (foodTimer) clearInterval(foodTimer);
                 document.getElementById("snake-overlay").style.display = "none";
                 document.getElementById("food-timer-bar").style.display = "none";
+                document.getElementById("powerup-status").innerText = "";
                 
                 generateObstacles(level);
                 updateStats();
@@ -592,21 +675,24 @@
                     food.x = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
                     food.y = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
                     
-                    // Cek jangan sampai spawn di badan ular
                     let onSnake = snake.some(part => part.x === food.x && part.y === food.y);
-                    // Cek jangan sampai spawn di atas rintangan/tembok
                     let onObstacle = obstacles.some(obs => obs.x === food.x && obs.y === food.y);
+                    let onPortal = portals.some(pt => pt.x === food.x && pt.y === food.y);
 
-                    if (!onSnake && !onObstacle) {
+                    if (!onSnake && !onObstacle && !onPortal) {
                         validPosition = true;
                     }
                 }
 
                 let rand = Math.random();
-                if (rand < 0.15) { 
+                // 10% Peluang muncul Mystery Box (Power-Up)
+                if (rand < 0.10) {
+                    food.type = 'mystery';
+                    startFoodCountdown();
+                } else if (rand < 0.22) { 
                     food.type = 'gold'; 
                     startFoodCountdown();
-                } else if (rand < 0.28) { 
+                } else if (rand < 0.35) { 
                     food.type = 'slow'; 
                 } else {
                     food.type = 'normal'; 
@@ -618,6 +704,11 @@
                 const timerBar = document.getElementById("food-timer-bar");
                 timerBar.style.display = "block";
                 timerBar.style.width = "330px";
+                if(food.type === 'mystery') {
+                    timerBar.style.background = "#e11d48"; // Merah muda terang untuk box
+                } else {
+                    timerBar.style.background = "#ffcc00";
+                }
 
                 foodTimer = setInterval(() => {
                     if (isGameOver) { clearInterval(foodTimer); return; }
@@ -632,7 +723,7 @@
             }
 
             window.moveSnk = function(targetKey) {
-                initAudio(); // Untuk mengaktifkan audio konteks via interaksi user jika browser memblokir awal
+                initAudio();
                 if (isGameOver) return;
                 if (targetKey === "ArrowLeft" && dx === 0) { dx = -gridSize; dy = 0; }
                 if (targetKey === "ArrowUp" && dy === 0) { dx = 0; dy = -gridSize; }
@@ -677,8 +768,21 @@
 
             function gameLoop() {
                 if (isGameOver) return;
-                const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+                let head = { x: snake[0].x + dx, y: snake[0].y + dy };
                 
+                // --- INTEGRASI FITUR 1: LOGIKA PORTAL WORMHOLE ---
+                if (portals.length > 0) {
+                    if (head.x === portals[0].x && head.y === portals[0].y) {
+                        // Masuk Portal A keluar di Portal B
+                        head.x = portals[1].x;
+                        head.y = portals[1].y;
+                    } else if (head.x === portals[1].x && head.y === portals[1].y) {
+                        // Masuk Portal B keluar di Portal A
+                        head.x = portals[0].x;
+                        head.y = portals[0].y;
+                    }
+                }
+
                 // Deteksi Tabrakan Dinding Luar
                 let hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
                 
@@ -686,18 +790,30 @@
                 let hitSelf = false;
                 for (let i = 4; i < snake.length; i++) { if (snake[i].x === head.x && snake[i].y === head.y) hitSelf = true; }
 
-                // Deteksi Tabrakan Rintangan Level (Obstacles)
+                // Deteksi Tabrakan Rintangan Level
                 let hitObstacle = obstacles.some(obs => obs.x === head.x && obs.y === head.y);
 
+                // Proteksi Ghost Mode: Abaikan tabrakan badan & rintangan jika aktif
+                if (isGhostMode) {
+                    hitSelf = false;
+                    hitObstacle = false;
+                    // Jika menembus dinding luar saat ghost mode, tembus ke sisi seberang
+                    if (head.x < 0) head.x = canvas.width - gridSize;
+                    if (head.x >= canvas.width) head.x = 0;
+                    if (head.y < 0) head.y = canvas.height - gridSize;
+                    if (head.y >= canvas.height) head.y = 0;
+                    hitWall = false;
+                }
+
                 if (hitWall || hitSelf || hitObstacle) {
-                    playHitSound(); // 🔊 Efek Suara Booom saat nabrak
+                    playHitSound(); 
+                    triggerScreenShake(); // 🎬 Trigger Layar Bergetar saat Tabrakan
                     lives--; 
                     updateStats();
                     if (foodTimer) clearInterval(foodTimer);
                     document.getElementById("food-timer-bar").style.display = "none";
 
                     if (lives > 0) {
-                        // Reset posisi ular di area yang aman (pojok kiri atas)
                         snake = [{ x: 45, y: 45 }, { x: 30, y: 45 }, { x: 15, y: 45 }];
                         dx = gridSize; dy = 0; 
                         generateFood(); 
@@ -705,7 +821,7 @@
                     } else {
                         isGameOver = true; 
                         clearIntervalsAll();
-                        stopBgm(); // 🔇 Matikan musik saat kalah
+                        stopBgm(); 
                         globalScore = score; globalLevel = level;
                         document.getElementById("snake-final-score").innerText = score;
                         document.getElementById("input-score-area").style.display = "flex";
@@ -715,19 +831,39 @@
                 }
 
                 snake.unshift(head);
+
+                // KETIKA ULAR MEMAKAN MAKANAN
                 if (head.x === food.x && head.y === food.y) {
-                    playEatSound(); // 🔊 Efek Suara Bip saat makan umpan
+                    playEatSound(); 
                     
+                    let basePoints = 0;
+                    let foodColor = "#ff2222";
+
                     if (food.type === 'gold') {
-                        score += 50;
+                        basePoints = 50;
+                        foodColor = "#ffcc00";
                     } else if (food.type === 'slow') {
-                        score += 10;
+                        basePoints = 10;
+                        foodColor = "#00e5ff";
                         speed = Math.min(speed + 25, defaultSpeed); 
                         clearIntervalsAll();
                         currentInterval = setInterval(gameLoop, speed);
+                    } else if (food.type === 'mystery') {
+                        basePoints = 20;
+                        foodColor = "#e11d48";
+                        // Acak jenis power up yang didapat
+                        let type = Math.random() < 0.5 ? 'ghost' : 'double';
+                        activatePowerUp(type);
                     } else {
-                        score += 10;
+                        basePoints = 10;
+                        foodColor = "#ff2222";
                     }
+
+                    // --- INTEGRASI FITUR 2: LOGIKA DOUBLE SCORE ---
+                    score += isDoubleScore ? (basePoints * 2) : basePoints;
+
+                    // 🎬 Trigger Efek Ledakan Partikel sesuai warna makanan
+                    createExplosion(food.x, food.y, foodColor);
 
                     let targetLevel = Math.floor(score / 200) + 1;
                     if (targetLevel > 10) targetLevel = 10;
@@ -735,7 +871,7 @@
                         level = targetLevel; 
                         lives += 1; 
                         speed = speed * 0.90; 
-                        generateObstacles(level); // Perbarui bentuk rintangan saat naik level
+                        generateObstacles(level); 
                         clearIntervalsAll(); 
                         currentInterval = setInterval(gameLoop, speed);
                     }
@@ -745,22 +881,43 @@
                 // --- PROSES MENGGAMBAR ARENA & ELEMEN ---
                 ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 1. Gambar Rintangan Tembok (jika ada)
-                ctx.fillStyle = "#7f8c8d"; // Warna tembok abu-abu retro
+                // 1. Gambar Portal Wormholes (Jika Level 4 atau 7)
+                portals.forEach(pt => {
+                    ctx.fillStyle = "#a855f7"; // Ungu portal neon
+                    ctx.shadowColor = "#c084fc";
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Lingkaran inti dalam
+                    ctx.fillStyle = "#fff";
+                    ctx.beginPath();
+                    ctx.arc(pt.x + gridSize/2, pt.y + gridSize/2, gridSize/4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                // 2. Gambar Rintangan Tembok
+                ctx.fillStyle = "#7f8c8d"; 
                 obstacles.forEach(obs => {
                     ctx.fillRect(obs.x + 1, obs.y + 1, gridSize - 2, gridSize - 2);
-                    // Garis tepi bata biar lebih estetik
                     ctx.strokeStyle = "#bdc3c7";
                     ctx.strokeRect(obs.x + 1, obs.y + 1, gridSize - 2, gridSize - 2);
                 });
 
-                // 2. Gambar Ular
+                // 3. Gambar Ular
                 snake.forEach((part, index) => {
-                    ctx.fillStyle = (index === 0) ? "#00cc44" : ((index % 2 === 0) ? "#00aa33" : "#008822");
+                    if (isGhostMode) {
+                        // Ular berubah jadi transparan/neon ungu saat Ghost Mode
+                        ctx.fillStyle = (index === 0) ? "rgba(168, 85, 247, 0.9)" : "rgba(168, 85, 247, 0.4)";
+                    } else {
+                        ctx.fillStyle = (index === 0) ? "#00cc44" : ((index % 2 === 0) ? "#00aa33" : "#008822");
+                    }
                     ctx.fillRect(part.x + 0.5, part.y + 0.5, gridSize - 1, gridSize - 1);
                 });
                 
-                // 3. Gambar Umpan
+                // 4. Gambar Umpan / Makanan
                 if (food.type === 'gold') {
                     ctx.fillStyle = "#ffcc00"; 
                     ctx.shadowColor = "#ffcc00";
@@ -769,13 +926,42 @@
                     ctx.fillStyle = "#00e5ff"; 
                     ctx.shadowColor = "#00e5ff";
                     ctx.shadowBlur = 6;
+                } else if (food.type === 'mystery') {
+                    // Mystery Box Kotak Kado Berkedip
+                    ctx.fillStyle = (Math.floor(Date.now() / 150) % 2 === 0) ? "#e11d48" : "#f43f5e";
+                    ctx.shadowColor = "#e11d48";
+                    ctx.shadowBlur = 8;
                 } else {
                     ctx.fillStyle = "#ff2222"; 
                     ctx.shadowBlur = 0;
                 }
                 
-                ctx.beginPath(); ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2); ctx.fill();
+                if (food.type === 'mystery') {
+                    // Gambar kotak jika tipe mystery box
+                    ctx.fillRect(food.x + 1, food.y + 1, gridSize - 2, gridSize - 2);
+                } else {
+                    // Gambar bulat untuk buah biasa
+                    ctx.beginPath(); ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2); ctx.fill();
+                }
                 ctx.shadowBlur = 0; 
+
+                // 5. Update & Gambar Partikel Ledakan
+                particles.forEach((p, index) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= 0.04; // partikel perlahan memudar
+                    if (p.alpha <= 0) {
+                        particles.splice(index, 1);
+                    } else {
+                        ctx.save();
+                        ctx.globalAlpha = p.alpha;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
             }
             window.startSnake();
         }
