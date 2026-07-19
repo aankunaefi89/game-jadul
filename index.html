@@ -130,6 +130,37 @@
             box-shadow: 0 4px #990000;
         }
         .back-btn:active { transform: translateY(2px); box-shadow: 0 2px #990000; }
+
+        /* INPUT POPUP SELESAI GAME */
+        #input-score-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            background: #444;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #input-score-container input {
+            padding: 8px;
+            width: 80%;
+            border-radius: 4px;
+            border: none;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #input-score-container button {
+            padding: 6px 15px;
+            background: lime;
+            border: none;
+            color: black;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -160,7 +191,6 @@
         <h2 id="active-game-title" style="color: #0b5394; margin-bottom: 10px;">GAME</h2>
         
         <div id="game-arena">
-            <!-- Game Canvas & Script Ular akan disuntikkan ke sini secara otomatis -->
             <div id="canvas-placeholder" style="width:360px; height:360px; color:#fff; display:flex; align-items:center; justify-content:center; text-align:center;">
                 Memuat Permainan...
             </div>
@@ -177,12 +207,12 @@
         <button class="back-btn" onclick="backToMenu()">◀ Kembali ke Menu Utama</button>
     </div>
 
-    <!-- Firebase SDK Modul Online -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Firebase SDK Modul Online (Sama Seperti di Aplikasi Tabungan) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // Konfigurasi Database Online Realtime Firebase (Sudah Siap Pakai untuk Game Kamu)
+        // Konfigurasi Database Online Realtime Firebase Terpusat
         const firebaseConfig = {
             databaseURL: "https://game-jadul-aan-default-rtdb.asia-southeast1.firebasedatabase.app/"
         };
@@ -190,6 +220,8 @@
         const database = firebase.database();
 
         let currentGame = "";
+        let globalScore = 0;
+        let globalLevel = 1;
 
         function openGame(gameName) {
             currentGame = gameName;
@@ -205,38 +237,31 @@
             document.getElementById("active-game-title").innerText = titleMap[gameName];
             document.getElementById("leaderboard-title").innerText = `🏆 TOP 10 SKOR ${gameName.toUpperCase()}`;
 
-            // Load papan skor khusus untuk game yang dipilih
             loadLeaderboard(gameName);
 
             if (gameName === 'snake') {
                 loadSnakeGame();
             } else {
-                document.getElementById("canvas-placeholder").innerHTML = `<h3>Game ${gameName.toUpperCase()} sedang dalam pengembangan Tahap Berikutnya!</h3>`;
+                document.getElementById("canvas-placeholder").innerHTML = `<h3>Game ${gameName.toUpperCase()} sedang dalam pengembangan!</h3>`;
             }
         }
 
         function backToMenu() {
-            // Hentikan game jika sedang berjalan
             if (typeof clearIntervalsAll === "function") clearIntervalsAll();
             document.getElementById("game-screen").classList.remove("active");
             document.getElementById("main-menu").classList.add("active");
             document.getElementById("canvas-placeholder").innerHTML = "Memuat Permainan...";
         }
 
-        // --- SISTEM LIHAT PAPAN SKOR 10 BESAR REAL-TIME ---
+        // --- AMBIL DATA PAPAN SKOR GLOBAL DARI FIREBASE ---
         function loadLeaderboard(gameName) {
             const scoreListUl = document.getElementById("score-list");
-            
-            // Mengambil 10 data skor tertinggi dari database cloud online
             database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).on('value', (snapshot) => {
                 scoreListUl.innerHTML = "";
                 let scores = [];
-                
                 snapshot.forEach((childSnapshot) => {
                     scores.push(childSnapshot.val());
                 });
-                
-                // Urutkan dari yang paling besar ke kecil
                 scores.reverse();
 
                 if(scores.length === 0) {
@@ -253,52 +278,69 @@
             });
         }
 
-        // --- DAFTAR DATABASE BARU JIKA MASUK 10 BESAR ---
-        function checkAndSaveScore(gameName, finalScore, finalLevel) {
-            // Ambil data untuk mengecek apakah skor berhak masuk papan peringkat
-            database.ref('leaderboard/' + gameName).orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+        // --- TRIGER INPUT NAMA PAS GAME OVER ---
+        function triggerScoreSubmission(finalScore, finalLevel) {
+            globalScore = finalScore;
+            globalLevel = finalLevel;
+            
+            // Cek peringkat ke database online global
+            database.ref('leaderboard/' + currentGame).orderByChild('score').limitToLast(10).once('value', (snapshot) => {
                 let scores = [];
                 snapshot.forEach((childSnapshot) => {
                     scores.push(childSnapshot.val());
                 });
 
-                // Jika list kurang dari 10 orang, atau skor lebih besar dari skor terendah di leaderboard
                 const isTop10 = scores.length < 10 || finalScore > scores[0].score;
 
                 if (isTop10 && finalScore > 0) {
-                    // Beri jeda sedikit agar layar game over selesai dirender
-                    setTimeout(() => {
-                        const playerName = prompt(`🎉 Keren! Skormu ${finalScore} masuk 10 besar global. Masukkan namamu:`);
-                        if (playerName && playerName.trim() !== "") {
-                            // Simpan ke database cloud online
-                            database.ref('leaderboard/' + gameName).push({
-                                name: playerName.trim(),
-                                score: parseInt(finalScore),
-                                level: parseInt(finalLevel),
-                                timestamp: Date.now()
-                            });
-                        }
-                    }, 500);
+                    document.getElementById("input-score-container").style.display = "flex";
                 }
             });
         }
 
-        // Tempat penyimpanan interval game agar bisa dimatikan saat back
+        // --- SIMPAN DATA KE FIREBASE ---
+        function submitScore() {
+            const nameInput = document.getElementById("player-name-input");
+            const name = nameInput.value.trim();
+            if (name === "") {
+                alert("Nama tidak boleh kosong!");
+                return;
+            }
+
+            database.ref('leaderboard/' + currentGame).push({
+                name: name,
+                score: parseInt(globalScore),
+                level: parseInt(globalLevel),
+                timestamp: Date.now()
+            });
+
+            document.getElementById("input-score-container").style.display = "none";
+            nameInput.value = "";
+            alert("Skor kamu berhasil dicatat di Papan Peringkat!");
+        }
+
         let currentInterval;
         function clearIntervalsAll() {
             if (currentInterval) clearInterval(currentInterval);
         }
 
-        // --- MASUKKAN GAME SNAKE LOGIKA LEVEL (TUNTUNAN TAHAP 3) ---
+        // --- LOGIKA GAME SNAKE ---
         function loadSnakeGame() {
             const placeholder = document.getElementById("canvas-placeholder");
             placeholder.innerHTML = `
                 <div style="position:relative; width:330px; height:330px;">
                     <canvas id="snakeCanvas" width="330" height="330" style="background:#111; border:2px solid #555; display:block;"></canvas>
-                    <div id="snake-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff;">
-                        <h2 id="snake-status" style="color:#ff4444; margin:0 0 10px 0;">GAME OVER</h2>
-                        <p style="margin:5px 0;">Skor: <span id="snake-final-score" style="font-weight:bold; color:lime;">0</span></p>
-                        <button onclick="startSnake()" style="margin-top:15px; padding:10px 20px; font-size:16px; font-weight:bold; background:lime; border:none; border-radius:5px; cursor:pointer;">MAIN LAGI</button>
+                    <div id="snake-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; padding:10px; box-sizing:border-box;">
+                        <h2 style="color:#ff4444; margin:0 0 5px 0; font-size:24px;">GAME OVER</h2>
+                        <p style="margin:2px 0;">Skor Akhir: <span id="snake-final-score" style="font-weight:bold; color:lime;">0</span></p>
+                        
+                        <!-- Form Input Papan Skor Internal -->
+                        <div id="input-score-container">
+                            <input type="text" id="player-name-input" placeholder="Masukkan Namamu" maxlength="12">
+                            <button onclick="submitScore()">Kirim ke Top 10</button>
+                        </div>
+
+                        <button onclick="startSnake()" style="margin-top:10px; padding:8px 16px; font-size:14px; font-weight:bold; background:lime; border:none; border-radius:5px; cursor:pointer;">MAIN LAGI</button>
                     </div>
                 </div>
                 <div id="snake-stats" style="color:#fff; width:100%; display:flex; justify-content:space-between; margin-top:8px; font-size:15px;">
@@ -306,15 +348,12 @@
                     <span>⭐ Level: <b id="snk-level">1</b></span>
                     <span>🎯 Skor: <b id="snk-score">0</b></span>
                 </div>
-                <!-- D-Pad untuk Mobile / HP -->
                 <div style="display:grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 45px); gap:6px; margin-top:12px; justify-content:center;">
-                    <div></div><button onclick="window.moveSnk('ArrowUp')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▲</button><div></div>
-                    <button onclick="window.moveSnk('ArrowLeft')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">◀</button><div></div><button onclick="window.moveSnk('ArrowRight')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▶</button>
-                    <div></div><button onclick="window.moveSnk('ArrowDown')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px; font-weight:bold;">▼</button><div></div>
+                    <div></div><button onclick="window.moveSnk('ArrowUp')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▲</button><div></div>
+                    <button onclick="window.moveSnk('ArrowLeft')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">◀</button><div></div><button onclick="window.moveSnk('ArrowRight')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▶</button>
+                    <div></div><button onclick="window.moveSnk('ArrowDown')" style="background:#555; color:#fff; border:1px solid #777; border-radius:5px; font-size:18px;">▼</button><div></div>
                 </div>
             `;
-
-            // Suntikkan logika game snake ter-update dengan sistem level 1-10
             initSnakeLogic();
         }
 
@@ -335,9 +374,10 @@
                 dx = gridSize;
                 dy = 0;
                 isGameOver = false;
-                speed = 130; // Kecepatan awal Level 1
+                speed = 130;
                 
                 document.getElementById("snake-overlay").style.display = "none";
+                document.getElementById("input-score-container").style.display = "none";
                 updateStats();
                 generateFood();
                 
@@ -379,10 +419,8 @@
             function gameLoop() {
                 if (isGameOver) return;
 
-                // Gerakkan ular
                 const head = { x: snake[0].x + dx, y: snake[0].y + dy };
                 
-                // Cek tabrakan dinding atau ekor sendiri
                 let hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
                 let hitSelf = false;
                 for (let i = 4; i < snake.length; i++) {
@@ -393,37 +431,33 @@
                     lives--;
                     updateStats();
                     if (lives > 0) {
-                        // Reset posisi ular saja tanpa game over (nyawa berkurang)
                         snake = [{ x: 150, y: 150 }, { x: 135, y: 150 }, { x: 120, y: 150 }];
                         dx = gridSize; dy = 0;
                         return;
                     } else {
-                        // Nyawa habis = GAME OVER
                         isGameOver = true;
                         clearIntervalsAll();
                         document.getElementById("snake-final-score").innerText = score;
                         document.getElementById("snake-overlay").style.display = "flex";
-                        // Cek peringkat di database online global
-                        checkAndSaveScore('snake', score, level);
+                        
+                        // Panggil pengecekan & penampilan input nama
+                        triggerScoreSubmission(score, level);
                         return;
                     }
                 }
 
                 snake.unshift(head);
 
-                // Jika makan apel
                 if (head.x === food.x && head.y === food.y) {
                     score += 10;
                     
-                    // --- SISTEM TINGKAT KESULITAN & KENAIKAN LEVEL ---
-                    // Level naik setiap kelipatan 200 poin (Maks level 10)
                     let targetLevel = Math.floor(score / 200) + 1;
                     if (targetLevel > 10) targetLevel = 10;
                     
                     if (targetLevel > level) {
                         level = targetLevel;
-                        lives += 1; // Tambah nyawa bonus 1x per naik level
-                        speed = speed * 0.90; // Tingkat kesulitan meningkat: kecepatan bertambah 10% lebih cepat (delay dikurangi 10%)
+                        lives += 1; 
+                        speed = speed * 0.90; 
                         clearIntervalsAll();
                         currentInterval = setInterval(gameLoop, speed);
                     }
@@ -434,7 +468,6 @@
                     snake.pop();
                 }
 
-                // Gambar visual ular lucu
                 ctx.fillStyle = "#111";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -452,14 +485,12 @@
                     }
                 });
 
-                // Gambar Makanan Apel bulat
                 ctx.fillStyle = "#ff2222";
                 ctx.beginPath();
                 ctx.arc(food.x + gridSize/2, food.y + gridSize/2, gridSize/2 - 1, 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            // Jalankan ular pertama kali
             window.startSnake();
         }
     </script>
