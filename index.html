@@ -442,6 +442,8 @@
             stopBgm();
             clearIntervalsAll();
             document.getElementById("game-screen").classList.remove("active");
+            document.querySelector(".leaderboard-box").style.display="block";
+            document.getElementById("game-arena").style.width="";
             document.getElementById("main-menu").classList.add("active");
             document.getElementById("canvas-placeholder").innerHTML = "Memuat Permainan...";
         }
@@ -499,18 +501,20 @@
 
 
         function loadLiveChat(){
-            document.getElementById("leaderboard-title").innerText="💬 LIVE CHAT";
-            document.getElementById("canvas-placeholder").innerHTML=`
-            <div style="width:330px">
-            <div id="chat-box" style="height:300px;overflow:auto;background:#111;color:#fff;padding:8px;border:1px solid #666"></div>
-            <input id="chat-name" placeholder="Nama" maxlength="12" style="width:100%;margin-top:6px">
-            <input id="chat-message" placeholder="Pesan" maxlength="120" style="width:100%;margin-top:6px">
-            <button onclick="sendChat()" style="width:100%;margin-top:6px">Kirim</button>
-            </div>`;
-            listenChat();
-            document.getElementById("chat-message").addEventListener("keypress",e=>{if(e.key==="Enter")sendChat();});
-        }
-        function sendChat(){
+document.querySelector(".leaderboard-box").style.display="none";
+document.getElementById("game-arena").style.width="100%";
+document.getElementById("canvas-placeholder").innerHTML=`
+<div style="width:100%;max-width:900px;height:75vh;display:flex;flex-direction:column;background:#202124;border-radius:10px;padding:10px;box-sizing:border-box">
+<h2 style="color:#fff;text-align:center">💬 LIVE CHAT</h2>
+<div id="chat-box" style="flex:1;overflow-y:auto;background:#111;color:#fff;padding:10px;border-radius:8px"></div>
+<input id="chat-name" placeholder="Nama" maxlength="12" style="margin-top:8px;padding:10px">
+<input id="chat-message" placeholder="Tulis pesan..." maxlength="120" style="margin-top:8px;padding:10px">
+<button onclick="sendChat()" style="margin-top:8px;padding:12px;background:#1976d2;color:#fff;border:none;border-radius:6px">📤 Kirim</button>
+</div>`;
+listenChat();
+document.getElementById("chat-message").addEventListener("keypress",e=>{if(e.key==='Enter')sendChat();});
+}
+function sendChat(){
             const n=document.getElementById("chat-name").value.trim();
             const m=document.getElementById("chat-message").value.trim();
             if(!n||!m||!database)return;
