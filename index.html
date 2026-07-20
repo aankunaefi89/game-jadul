@@ -1079,10 +1079,78 @@ function sendChat(){
                 pacman.nextDx = 0; pacman.nextDy = 0;
 
                 ghosts = [
-                    { id: 1, x: 7, y: 7, color: '#ff0000', baseColor: '#ff0000', dx: 1, dy: 0 }, 
-                    { id: 2, x: 8, y: 7, color: '#ffb8ff', baseColor: '#ffb8ff', dx: -1, dy: 0 }
-                ];
 
+{
+    id:1,
+    name:"blinky",
+    x:7,
+    y:7,
+    color:"#ff0000",
+    baseColor:"#ff0000",
+    dx:1,
+    dy:0
+},
+
+{
+    id:2,
+    name:"pinky",
+    x:8,
+    y:7,
+    color:"#ffb8ff",
+    baseColor:"#ffb8ff",
+    dx:-1,
+    dy:0
+}
+
+];
+
+if(level>=3){
+
+ghosts.push({
+
+id:3,
+
+name:"inky",
+
+x:7,
+
+y:6,
+
+color:"#00ffff",
+
+baseColor:"#00ffff",
+
+dx:0,
+
+dy:-1
+
+});
+
+}
+
+if(level>=5){
+
+ghosts.push({
+
+id:4,
+
+name:"clyde",
+
+x:8,
+
+y:6,
+
+color:"#ffb851",
+
+baseColor:"#ffb851",
+
+dx:0,
+
+dy:-1
+
+});
+
+}   
                 if (level >= 3) {
                     ghosts.push({ id: 3, x: 7, y: 6, color: '#00ffff', baseColor: '#00ffff', dx: 0, dy: -1 });
                 }
@@ -1186,7 +1254,131 @@ function sendChat(){
                     resetPositions();
                     updateStats();
                 }
+function chooseGhostMove(ghost,validMoves){
 
+if(validMoves.length==0) return null;
+
+let best=validMoves[0];
+
+if(ghost.name==="blinky"){
+
+let bestDist=999;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-pacman.x)+Math.abs((ghost.y+m.y)-pacman.y);
+
+if(d<bestDist){
+
+bestDist=d;
+
+best=m;
+
+}
+
+});
+
+}
+
+else if(ghost.name==="pinky"){
+
+let tx=pacman.x+pacman.dx*4;
+
+let ty=pacman.y+pacman.dy*4;
+
+let bestDist=999;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-tx)+Math.abs((ghost.y+m.y)-ty);
+
+if(d<bestDist){
+
+bestDist=d;
+
+best=m;
+
+}
+
+});
+
+}
+
+else if(ghost.name==="inky"){
+
+if(Math.random()<0.40){
+
+best=validMoves[Math.floor(Math.random()*validMoves.length)];
+
+}else{
+
+let bestDist=999;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-pacman.x)+Math.abs((ghost.y+m.y)-pacman.y);
+
+if(d<bestDist){
+
+bestDist=d;
+
+best=m;
+
+}
+
+});
+
+}
+
+}
+
+else{
+
+let dist=Math.abs(ghost.x-pacman.x)+Math.abs(ghost.y-pacman.y);
+
+if(dist<4){
+
+let far=-1;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-pacman.x)+Math.abs((ghost.y+m.y)-pacman.y);
+
+if(d>far){
+
+far=d;
+
+best=m;
+
+}
+
+});
+
+}else{
+
+let bestDist=999;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-pacman.x)+Math.abs((ghost.y+m.y)-pacman.y);
+
+if(d<bestDist){
+
+bestDist=d;
+
+best=m;
+
+}
+
+});
+
+}
+
+}
+
+return best;
+
+}
                 ghosts.forEach(ghost => {
                     if (isFrightenedMode && (Math.floor(Date.now() / 200) % 2 === 0)) {
                         return; 
@@ -1209,29 +1401,31 @@ function sendChat(){
                         });
                     }
 
-                    let chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
-                    let minDist = isFrightenedMode ? 0 : 999; 
+                    let chosen;
 
-                    let chaseChance = 0.50 + (level * 0.05); 
-                    if (chaseChance > 0.85) chaseChance = 0.85; 
+if(isFrightenedMode){
 
-                    validMoves.forEach(m => {
-                        let nextX = ghost.x + m.x;
-                        let nextY = ghost.y + m.y;
-                        let dist = Math.abs(nextX - pacman.x) + Math.abs(nextY - pacman.y);
-                        
-                        if (isFrightenedMode) {
-                            if (dist > minDist) {
-                                minDist = dist;
-                                chosen = m;
-                            }
-                        } else {
-                            if (dist < minDist && Math.random() < chaseChance) {
-                                minDist = dist;
-                                chosen = m;
-                            }
-                        }
-                    });
+let far=-1;
+
+validMoves.forEach(m=>{
+
+let d=Math.abs((ghost.x+m.x)-pacman.x)+Math.abs((ghost.y+m.y)-pacman.y);
+
+if(d>far){
+
+far=d;
+
+chosen=m;
+
+}
+
+});
+
+}else{
+
+chosen=chooseGhostMove(ghost,validMoves);
+
+}
 
                     if (chosen) {
                         ghost.dx = chosen.x; ghost.dy = chosen.y;
