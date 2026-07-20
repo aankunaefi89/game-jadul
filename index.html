@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Game Jadul Aankunaefi</title>
     <style>
+        .chat-container {
+    width: 330px;
+    height: 330px;
+    background: #fff;
+    border: 2px solid #0b5394;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 13px;
+    background: #f9f9f9;
+}
+.chat-input-area {
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 5px;
+}
         body {
             display: flex;
             flex-direction: column;
@@ -307,6 +329,43 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
+        function loadLiveChat() {
+    const placeholder = document.getElementById("canvas-placeholder");
+    placeholder.innerHTML = `
+        <div class="chat-container">
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-name" placeholder="Nama" style="width:30%">
+                <input type="text" id="chat-msg" placeholder="Pesan..." style="flex:1">
+                <button onclick="sendChatMessage()">Kirim</button>
+            </div>
+        </div>
+    `;
+
+    // Ambil pesan dari Firebase
+    database.ref('livechat').limitToLast(20).on('value', (snapshot) => {
+        const msgDiv = document.getElementById("chat-messages");
+        msgDiv.innerHTML = "";
+        snapshot.forEach((child) => {
+            const data = child.val();
+            msgDiv.innerHTML += `<div><b>${data.name}:</b> ${data.message}</div>`;
+        });
+        msgDiv.scrollTop = msgDiv.scrollHeight;
+    });
+}
+
+function sendChatMessage() {
+    const name = document.getElementById("chat-name").value || "Anonim";
+    const msg = document.getElementById("chat-msg").value;
+    if(msg.trim() === "") return;
+    
+    database.ref('livechat').push({
+        name: name,
+        message: msg,
+        timestamp: Date.now()
+    });
+    document.getElementById("chat-msg").value = "";
+}
         const firebaseConfig = {
             databaseURL: "https://tabungankeluarga-a091f-default-rtdb.firebaseio.com/"
         };
@@ -434,6 +493,12 @@
             } else {
                 document.getElementById("canvas-placeholder").innerHTML = `<h3 style='color:#fff;'>Game ${gameName.toUpperCase()} sedang dikembangkan!</h3>`;
             }
+            // ... di dalam fungsi openGame(gameName)
+} else if (gameName === 'livechat') {
+    loadLiveChat();
+} else {
+    // ... default case
+}
         }
 
         function backToMenu() {
