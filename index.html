@@ -431,6 +431,8 @@
                 loadSnakeGame();
             } else if (gameName === 'pacman') {
                 loadPacmanGame();
+            } else if (gameName === 'livechat') {
+                loadLiveChat();
             } else {
                 document.getElementById("canvas-placeholder").innerHTML = `<h3 style='color:#fff;'>Game ${gameName.toUpperCase()} sedang dikembangkan!</h3>`;
             }
@@ -492,6 +494,41 @@
                 clearInterval(currentInterval);
                 currentInterval = null;
             }
+        }
+
+
+
+        function loadLiveChat(){
+            document.getElementById("leaderboard-title").innerText="💬 LIVE CHAT";
+            document.getElementById("canvas-placeholder").innerHTML=`
+            <div style="width:330px">
+            <div id="chat-box" style="height:300px;overflow:auto;background:#111;color:#fff;padding:8px;border:1px solid #666"></div>
+            <input id="chat-name" placeholder="Nama" maxlength="12" style="width:100%;margin-top:6px">
+            <input id="chat-message" placeholder="Pesan" maxlength="120" style="width:100%;margin-top:6px">
+            <button onclick="sendChat()" style="width:100%;margin-top:6px">Kirim</button>
+            </div>`;
+            listenChat();
+            document.getElementById("chat-message").addEventListener("keypress",e=>{if(e.key==="Enter")sendChat();});
+        }
+        function sendChat(){
+            const n=document.getElementById("chat-name").value.trim();
+            const m=document.getElementById("chat-message").value.trim();
+            if(!n||!m||!database)return;
+            database.ref("livechat").push({name:n,message:m,time:Date.now()});
+            document.getElementById("chat-message").value="";
+        }
+        function listenChat(){
+            const box=document.getElementById("chat-box");
+            if(!database)return;
+            database.ref("livechat").limitToLast(50).on("value",s=>{
+                box.innerHTML="";
+                s.forEach(c=>{
+                    const d=c.val();
+                    const t=new Date(d.time).toLocaleTimeString();
+                    box.innerHTML+=`<div><b>${d.name}</b> <small>${t}</small><br>${d.message}<hr></div>`;
+                });
+                box.scrollTop=box.scrollHeight;
+            });
         }
 
         // =========================================================================
